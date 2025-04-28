@@ -12,6 +12,11 @@ import Register from "./pages/Register.jsx";
 import FooterSection from "./components/FooterSection.jsx";
 import UserDocuments from "./components/UserDocuments";
 
+// ADD THESE IMPORTS:
+import ForgotPassword from "./components/ForgotPassword";
+import VerifyOtp from "./components/VerifyOtp";
+import ResetPassword from "./components/ResetPassword";
+
 function App() {
   return (
     <Router>
@@ -21,7 +26,13 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
+        {/* Password Recovery Routes */}
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/verify-otp" element={<VerifyOtp />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        {/* Credit Score Check */}
         <Route path="/credit-score" element={<CreditScoreCheck />} />
+        {/* Loan Application (USER only) */}
         <Route
           path="/apply-loan"
           element={
@@ -30,6 +41,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+        {/* Main Dashboard (any authenticated user) */}
         <Route
           path="/dashboard"
           element={
@@ -38,11 +50,32 @@ function App() {
             </ProtectedRoute>
           }
         />
+        {/* Admin Dashboard */}
+        <Route
+          path="/admin-dashboard"
+          element={
+            <ProtectedRoute roleRequired="ADMIN">
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        {/* User Dashboard */}
+        <Route
+          path="/user-dashboard"
+          element={
+            <ProtectedRoute roleRequired="USER">
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        {/* User Documents */}
         <Route
           path="/documents"
           element={
             <ProtectedRoute>
-              <UserDocuments userId={JSON.parse(localStorage.getItem("user") || "{}").id} />
+              <UserDocuments
+                userId={JSON.parse(localStorage.getItem("user") || "{}").id}
+              />
             </ProtectedRoute>
           }
         />

@@ -2,18 +2,11 @@ import {
   AttachMoney,
   Cancel,
   CheckCircle,
-  Close as CloseIcon,
   Dashboard as DashboardIcon,
-  Download as DownloadIcon,
   FilterList,
-  Home,
   Pending,
-  PictureAsPdf,
-  Score,
-  Work,
 } from "@mui/icons-material";
 import {
-  alpha,
   Avatar,
   Box,
   Button,
@@ -33,7 +26,6 @@ import {
   ListItemText,
   Menu,
   MenuItem,
-  Tooltip as MuiTooltip,
   Paper,
   Stack,
   Typography,
@@ -44,28 +36,18 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Legend,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import UserDocuments from "../components/UserDocuments";
+import ChartsSection from "../dashboard/ChartsSection";
+import ApplicationsList from "../dashboard/ApplicationsList";
+import PdfDialog from "../dashboard/PdfDialog";
+import EmiDialog from "../dashboard/EmiDialog";
+import NotificationBell from "../components/NotificationBell";
+
 function Dashboard() {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [anchorEl, setAnchorEl] = useState(null);
   const [filterAnchorEl, setFilterAnchorEl] = useState(null);
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [selectedDocs, setSelectedDocs] = useState([]);
@@ -259,15 +241,31 @@ function Dashboard() {
       const application = applications.find(
         (app) => app.applicationId === applicationId
       );
-      await axios.post(
-        `http://localhost:8732/api/disbursements/disburse/${applicationId}`,
-        null,
-        { params: { amount: application.loanAmount } }
-      );
+
+      // Check if the application is approved before disbursement
+      if (application.status !== "APPROVED") {
+        toast.error("Loan application must be approved before disbursement");
+        return;
+      }
+
+      // Ensure loanAmount is a valid number
+      const amount = Number(application.loanAmount);
+
+      // Using axios params option to properly encode the query parameters
+      const url = `http://localhost:8732/api/disbursements/disburse/${applicationId}`;
+
+      await axios({
+        method: 'post',
+        url: url,
+        params: {
+          amount: amount
+        }
+      });
+
       toast.success("Loan disbursed!");
       fetchApplications();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Disbursement failed");
+      toast.error(error.response?.data || "Disbursement failed");
     }
   };
 
@@ -398,8 +396,12 @@ function Dashboard() {
       }}
     >
       <ToastContainer />
-      {/* --- CHARTS SECTION --- */}
       <Container maxWidth="xl" sx={{ mt: 4 }}>
+        {/* --- NOTIFICATION BELL --- */}
+        <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+          <NotificationBell userId={user.id} />
+        </Box>
+
         <Box sx={{ mb: 4 }}>
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -425,616 +427,52 @@ function Dashboard() {
           </motion.div>
         </Box>
 
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          {/* Status Pie Chart */}
-          <Grid item xs={12} md={4}>
-            <Paper
-              sx={{
-                p: 3,
-                borderRadius: 3,
-                height: "100%",
-                boxShadow: theme.shadows[2],
-              }}
-            >
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Application Status
-              </Typography>
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie
-                    data={getStatusData()}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={5}
-                    dataKey="value"
-                    label={({ name, percent }) =>
-                      `${name} ${(percent * 100).toFixed(0)}%`
-                    }
-                  >
-                    {getStatusData().map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </Paper>
-          </Grid>
-          {/* Monthly Trends Area Chart */}
-          <Grid item xs={12} md={4}>
-            <Paper
-              sx={{
-                p: 3,
-                borderRadius: 3,
-                height: "100%",
-                boxShadow: theme.shadows[2],
-              }}
-            >
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Monthly Trends
-              </Typography>
-              <ResponsiveContainer width="100%" height={250}>
-                <AreaChart
-                  data={getMonthlyData()}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke={theme.palette.divider}
-                  />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip />
-                  <Area
-                    type="monotone"
-                    dataKey="applications"
-                    stackId="1"
-                    stroke={theme.palette.primary.main}
-                    fill={theme.palette.primary.light}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="approved"
-                    stackId="2"
-                    stroke={theme.palette.success.main}
-                    fill={theme.palette.success.light}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </Paper>
-          </Grid>
-          {/* Loan Purpose Bar Chart */}
-          <Grid item xs={12} md={4}>
-            <Paper
-              sx={{
-                p: 3,
-                borderRadius: 3,
-                height: "100%",
-                boxShadow: theme.shadows[2],
-              }}
-            >
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Loan Amount by Purpose
-              </Typography>
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={getPurposeData()}>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke={theme.palette.divider}
-                  />
-                  <XAxis dataKey="purpose" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="amount" fill={theme.palette.info.main} />
-                </BarChart>
-              </ResponsiveContainer>
-            </Paper>
-          </Grid>
-        </Grid>
+        {/* --- CHARTS SECTION --- */}
+        <ChartsSection
+          applications={applications}
+          theme={theme}
+          getStatusData={getStatusData}
+          getMonthlyData={getMonthlyData}
+          getPurposeData={getPurposeData}
+        />
 
         {/* --- USER DOCUMENT UPLOAD & VIEW SECTION (as a component) --- */}
-        <UserDocuments userId={user.id} />
+        <UserDocuments userId={user.id} userRole={user.role} />
 
         {/* --- APPLICATIONS SECTION --- */}
-        <Paper
-          sx={{
-            p: 3,
-            borderRadius: 3,
-            background: theme.palette.background.paper,
-            boxShadow: theme.shadows[2],
-            mb: 4,
-          }}
-        >
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              mb: 3,
-            }}
-          >
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Loan Applications
-            </Typography>
-            <Box sx={{ display: "flex", gap: 2 }}>
-              <Button
-                variant="outlined"
-                startIcon={<FilterList />}
-                onClick={(e) => setFilterAnchorEl(e.currentTarget)}
-                sx={{ borderRadius: 3 }}
-              >
-                Filter
-              </Button>
-              {user.role !== "ADMIN" && (
-                <Button
-                  variant="contained"
-                  color="primary"
-                  sx={{ borderRadius: 3 }}
-                  href="/apply-loan"
-                >
-                  New Application
-                </Button>
-              )}
-            </Box>
-          </Box>
-
-          {/* Filter Menu */}
-          <Menu
-            anchorEl={filterAnchorEl}
-            open={Boolean(filterAnchorEl)}
-            onClose={() => setFilterAnchorEl(null)}
-            PaperProps={{
-              elevation: 3,
-              sx: {
-                mt: 1,
-                minWidth: 200,
-                borderRadius: 3,
-              },
-            }}
-          >
-            {statusFilters.map((filter) => (
-              <MenuItem
-                key={filter.value}
-                selected={statusFilter === filter.value}
-                onClick={() => {
-                  setStatusFilter(filter.value);
-                  setFilterAnchorEl(null);
-                }}
-              >
-                <ListItemIcon>{filter.icon}</ListItemIcon>
-                <ListItemText>{filter.label}</ListItemText>
-              </MenuItem>
-            ))}
-          </Menu>
-
-          {filteredApplications.length === 0 ? (
-            <Box
-              sx={{
-                p: 8,
-                textAlign: "center",
-                borderRadius: 2,
-                backgroundColor: alpha(theme.palette.action.hover, 0.05),
-              }}
-            >
-              <Typography variant="h6" color="text.secondary" gutterBottom>
-                No applications found
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {searchQuery
-                  ? "Try a different search term"
-                  : statusFilter !== "ALL"
-                  ? "No applications with this status"
-                  : "You have no applications yet"}
-              </Typography>
-            </Box>
-          ) : (
-            <Grid container spacing={3}>
-              <AnimatePresence>
-                {filteredApplications.map((app) => (
-                  <Grid item xs={12} sm={6} md={4} key={app.applicationId}>
-                    <motion.div
-                      layout
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      transition={{ duration: 0.3 }}
-                      whileHover={{ y: -5 }}
-                    >
-                      <Card
-                        sx={{
-                          borderRadius: 3,
-                          height: "100%",
-                          borderLeft: `4px solid ${
-                            app.status === "APPROVED"
-                              ? theme.palette.success.main
-                              : app.status === "REJECTED"
-                              ? theme.palette.error.main
-                              : app.status === "DISBURSED"
-                              ? theme.palette.primary.main
-                              : theme.palette.warning.main
-                          }`,
-                          boxShadow: theme.shadows[1],
-                          transition: "all 0.3s ease",
-                          "&:hover": {
-                            boxShadow: theme.shadows[4],
-                          },
-                        }}
-                      >
-                        <CardContent>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              mb: 2,
-                            }}
-                          >
-                            <Typography
-                              variant="subtitle1"
-                              sx={{
-                                fontWeight: 600,
-                                color: theme.palette.text.primary,
-                              }}
-                            >
-                              {app.name}
-                            </Typography>
-                            <Chip
-                              label={app.status}
-                              size="small"
-                              sx={{
-                                borderRadius: 2,
-                                fontWeight: 500,
-                                backgroundColor:
-                                  app.status === "APPROVED"
-                                    ? alpha(theme.palette.success.main, 0.1)
-                                    : app.status === "REJECTED"
-                                    ? alpha(theme.palette.error.main, 0.1)
-                                    : app.status === "DISBURSED"
-                                    ? alpha(theme.palette.primary.main, 0.1)
-                                    : alpha(theme.palette.warning.main, 0.1),
-                                color:
-                                  app.status === "APPROVED"
-                                    ? theme.palette.success.main
-                                    : app.status === "REJECTED"
-                                    ? theme.palette.error.main
-                                    : app.status === "DISBURSED"
-                                    ? theme.palette.primary.main
-                                    : theme.palette.warning.main,
-                              }}
-                            />
-                          </Box>
-
-                          <Stack spacing={1.5} sx={{ mb: 2 }}>
-                            <Box sx={{ display: "flex", alignItems: "center" }}>
-                              <Work
-                                sx={{
-                                  mr: 1,
-                                  color: theme.palette.text.secondary,
-                                  fontSize: 20,
-                                }}
-                              />
-                              <Typography variant="body2">
-                                {app.profession}
-                              </Typography>
-                            </Box>
-                            <Box sx={{ display: "flex", alignItems: "center" }}>
-                              <Home
-                                sx={{
-                                  mr: 1,
-                                  color: theme.palette.text.secondary,
-                                  fontSize: 20,
-                                }}
-                              />
-                              <Typography variant="body2">
-                                {app.purpose}
-                              </Typography>
-                            </Box>
-                            <Box sx={{ display: "flex", alignItems: "center" }}>
-                              <AttachMoney
-                                sx={{
-                                  mr: 1,
-                                  color: theme.palette.text.secondary,
-                                  fontSize: 20,
-                                }}
-                              />
-                              <Typography variant="body2">
-                                ₹{Number(app.loanAmount).toLocaleString()}
-                              </Typography>
-                            </Box>
-                            <Box sx={{ display: "flex", alignItems: "center" }}>
-                              <Score
-                                sx={{
-                                  mr: 1,
-                                  color: theme.palette.text.secondary,
-                                  fontSize: 20,
-                                }}
-                              />
-                              <Typography variant="body2">
-                                Credit Score: {app.creditScore}
-                              </Typography>
-                            </Box>
-                          </Stack>
-
-                          {/* Admin actions */}
-                          {user.role === "ADMIN" && (
-                            <Box
-                              sx={{
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: 1,
-                                mt: 2,
-                              }}
-                            >
-                              <MuiTooltip
-                                title="View all user-submitted PDFs"
-                                arrow
-                              >
-                                <Button
-                                  variant="outlined"
-                                  startIcon={<PictureAsPdf />}
-                                  onClick={async () => {
-                                    await fetchDocuments(app);
-                                  }}
-                                  sx={{
-                                    borderRadius: 2,
-                                    textTransform: "none",
-                                    mb: 1,
-                                    background:
-                                      "linear-gradient(90deg, #f8fafc 0%, #e0e7ef 100%)",
-                                  }}
-                                  color="secondary"
-                                >
-                                  View Documents
-                                </Button>
-                              </MuiTooltip>
-                              {app.status === "PENDING" && (
-                                <Box sx={{ display: "flex", gap: 1 }}>
-                                  <Button
-                                    variant="contained"
-                                    color="success"
-                                    size="small"
-                                    onClick={() =>
-                                      handleStatusUpdate(
-                                        app.applicationId,
-                                        "APPROVED"
-                                      )
-                                    }
-                                    sx={{
-                                      borderRadius: 2,
-                                      flex: 1,
-                                      textTransform: "none",
-                                    }}
-                                  >
-                                    Approve
-                                  </Button>
-                                  <Button
-                                    variant="outlined"
-                                    color="error"
-                                    size="small"
-                                    onClick={() =>
-                                      handleStatusUpdate(
-                                        app.applicationId,
-                                        "REJECTED"
-                                      )
-                                    }
-                                    sx={{
-                                      borderRadius: 2,
-                                      flex: 1,
-                                      textTransform: "none",
-                                    }}
-                                  >
-                                    Reject
-                                  </Button>
-                                </Box>
-                              )}
-                              {app.status === "APPROVED" && (
-                                <Button
-                                  variant="contained"
-                                  color="primary"
-                                  size="small"
-                                  onClick={() =>
-                                    handleDisburse(app.applicationId)
-                                  }
-                                  sx={{
-                                    borderRadius: 2,
-                                    width: "100%",
-                                    textTransform: "none",
-                                  }}
-                                >
-                                  Disburse Loan
-                                </Button>
-                              )}
-                            </Box>
-                          )}
-
-                          {/* USER EMI REPAYMENT BUTTON */}
-                          {user.role !== "ADMIN" &&
-                            app.status === "DISBURSED" && (
-                              <Button
-                                variant="outlined"
-                                color="primary"
-                                size="small"
-                                sx={{ borderRadius: 2, mt: 1 }}
-                                onClick={() => fetchEMIs(app.applicationId)}
-                              >
-                                View/Pay EMIs
-                              </Button>
-                            )}
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  </Grid>
-                ))}
-              </AnimatePresence>
-            </Grid>
-          )}
-        </Paper>
+        <ApplicationsList
+          applications={filteredApplications}
+          user={user}
+          onFetchDocuments={fetchDocuments}
+          onFetchEMIs={fetchEMIs}
+          onStatusUpdate={handleStatusUpdate}
+          onDisburse={handleDisburse}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+          filterAnchorEl={filterAnchorEl}
+          setFilterAnchorEl={setFilterAnchorEl}
+          statusFilters={statusFilters}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          theme={theme}
+        />
 
         {/* PDF Dialog for Application */}
-        <Dialog
+        <PdfDialog
           open={pdfDialogOpen}
           onClose={() => setPdfDialogOpen(false)}
-          maxWidth="md"
-          fullWidth
-          PaperProps={{
-            sx: {
-              borderRadius: 3,
-              p: 2,
-              background: "linear-gradient(120deg, #f8fafc 0%, #e0e7ef 100%)",
-            },
-          }}
-        >
-          <DialogTitle
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <Stack direction="row" alignItems="center" spacing={1}>
-              <PictureAsPdf color="error" />
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                Application Documents
-              </Typography>
-            </Stack>
-            <IconButton onClick={() => setPdfDialogOpen(false)}>
-              <CloseIcon />
-            </IconButton>
-          </DialogTitle>
-          <DialogContent dividers>
-            {docsLoading ? (
-              <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
-                <CircularProgress />
-              </Box>
-            ) : selectedDocs.length === 0 ? (
-              <Typography>No documents found.</Typography>
-            ) : (
-              selectedDocs.map((doc, idx) => (
-                <Box
-                  key={doc.downloadUrl || idx}
-                  sx={{ mb: 2, display: "flex", alignItems: "center", gap: 2 }}
-                >
-                  <PictureAsPdf color="error" sx={{ fontSize: 32 }} />
-                  <Box sx={{ flex: 1 }}>
-                    <Typography sx={{ fontWeight: 600 }}>
-                      {doc.fileName || doc.documentType || "PDF Document"}
-                      <Chip
-                        label={doc.documentType}
-                        size="small"
-                        color="info"
-                        sx={{ ml: 1, fontWeight: 500 }}
-                      />
-                    </Typography>
-                  </Box>
-                  <MuiTooltip title="Open PDF in new tab" arrow>
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      size="small"
-                      sx={{ mr: 1, borderRadius: 2 }}
-                      onClick={() =>
-                        window.open(
-                          `http://localhost:8732${doc.downloadUrl}`,
-                          "_blank"
-                        )
-                      }
-                    >
-                      View
-                    </Button>
-                  </MuiTooltip>
-                  <MuiTooltip title="Download PDF" arrow>
-                    <Button
-                      variant="outlined"
-                      color="secondary"
-                      size="small"
-                      sx={{ borderRadius: 2 }}
-                      href={`http://localhost:8732${doc.downloadUrl}`}
-                      target="_blank"
-                      startIcon={<DownloadIcon />}
-                    >
-                      Download
-                    </Button>
-                  </MuiTooltip>
-                </Box>
-              ))
-            )}
-          </DialogContent>
-          <DialogActions>
-            <Button
-              onClick={() => setPdfDialogOpen(false)}
-              sx={{ borderRadius: 2 }}
-            >
-              Close
-            </Button>
-          </DialogActions>
-        </Dialog>
+          docsLoading={docsLoading}
+          selectedDocs={selectedDocs}
+        />
 
         {/* --- EMI Dialog for Users --- */}
-        <Dialog
+        <EmiDialog
           open={emiDialogOpen}
           onClose={() => setEmiDialogOpen(false)}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle>EMI Schedule</DialogTitle>
-          <DialogContent dividers>
-            {emiLoading ? (
-              <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
-                <CircularProgress />
-              </Box>
-            ) : selectedLoanEMIs.length === 0 ? (
-              <Typography>No EMIs found.</Typography>
-            ) : (
-              selectedLoanEMIs.map((emi) => (
-                <Box
-                  key={emi.id}
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    mb: 2,
-                    p: 1,
-                    borderRadius: 2,
-                    background: emi.status === "PAID" ? "#e0ffe0" : "#fffbe0",
-                  }}
-                >
-                  <Typography>
-                    EMI #{emi.emiNumber} - Due: {emi.dueDate} - Amount: ₹
-                    {emi.emiAmount}
-                  </Typography>
-                  <Chip
-                    label={emi.status}
-                    color={
-                      emi.status === "PAID"
-                        ? "success"
-                        : emi.status === "OVERDUE"
-                        ? "error"
-                        : "warning"
-                    }
-                    sx={{ mr: 2 }}
-                  />
-                  {emi.status === "PENDING" && (
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      size="small"
-                      onClick={() => handlePayEmi(emi.id, emi.applicationId)}
-                    >
-                      Pay EMI
-                    </Button>
-                  )}
-                </Box>
-              ))
-            )}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setEmiDialogOpen(false)}>Close</Button>
-          </DialogActions>
-        </Dialog>
+          emiLoading={emiLoading}
+          selectedLoanEMIs={selectedLoanEMIs}
+          onPayEmi={handlePayEmi}
+        />
       </Container>
     </Box>
   );

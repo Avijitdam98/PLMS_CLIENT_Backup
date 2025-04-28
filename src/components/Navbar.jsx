@@ -141,6 +141,7 @@ const Navbar = () => {
     setMobileOpen(!mobileOpen);
   };
 
+  // Only show Document Hub if userRole === "USER"
   const getNavItems = () => {
     const items = [{ title: "Home", path: "/", icon: <HomeRoundedIcon /> }];
 
@@ -155,19 +156,21 @@ const Navbar = () => {
           title: "Credit Score",
           path: "/credit-score",
           icon: <CreditScoreRoundedIcon />,
-        },
-        {
-          title: "Document Hub",
-          path: "/documents",
-          icon: <PictureAsPdf />,
         }
       );
       if (userRole === "USER") {
-        items.push({
-          title: "Apply Loan",
-          path: "/apply-loan",
-          icon: <AccountBalanceRoundedIcon />,
-        });
+        items.push(
+          {
+            title: "Document Hub",
+            path: "/documents",
+            icon: <PictureAsPdf />,
+          },
+          {
+            title: "Apply Loan",
+            path: "/apply-loan",
+            icon: <AccountBalanceRoundedIcon />,
+          }
+        );
       }
     }
 

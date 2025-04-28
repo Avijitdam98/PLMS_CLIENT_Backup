@@ -23,10 +23,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
 function Login() {
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
@@ -42,11 +39,21 @@ function Login() {
         formData
       );
       console.log("Login response:", response.data);
+
       if (response.data && response.data.id && response.data.role) {
         localStorage.setItem("user", JSON.stringify(response.data));
         toast.success("Login successful!");
+
         window.dispatchEvent(new Event("storage"));
-        navigate("/dashboard");
+
+        // Role based navigation
+        if (response.data.role === "ADMIN") {
+          navigate("/admin-dashboard");
+        } else if (response.data.role === "USER") {
+          navigate("/user-dashboard");
+        } else {
+          navigate("/dashboard");
+        }
       } else {
         throw new Error("Invalid user data");
       }
@@ -58,7 +65,7 @@ function Login() {
 
   return (
     <Grid container sx={{ minHeight: "100vh" }}>
-      {/* Left Side - Visual Section */}
+      {/* Left Visual Section */}
       <Grid
         item
         xs={12}
@@ -90,47 +97,29 @@ function Login() {
             </Box>
 
             <Stack spacing={2}>
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <Box
-                  sx={{
-                    width: 8,
-                    height: 8,
-                    bgcolor: "white",
-                    borderRadius: "50%",
-                    mr: 2,
-                  }}
-                />
-                <Typography>Track your progress</Typography>
-              </Box>
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <Box
-                  sx={{
-                    width: 8,
-                    height: 8,
-                    bgcolor: "white",
-                    borderRadius: "50%",
-                    mr: 2,
-                  }}
-                />
-                <Typography>Access exclusive content</Typography>
-              </Box>
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <Box
-                  sx={{
-                    width: 8,
-                    height: 8,
-                    bgcolor: "white",
-                    borderRadius: "50%",
-                    mr: 2,
-                  }}
-                />
-                <Typography>Manage your account</Typography>
-              </Box>
+              {[
+                "Track your progress",
+                "Access exclusive content",
+                "Manage your account",
+              ].map((text, index) => (
+                <Box key={index} sx={{ display: "flex", alignItems: "center" }}>
+                  <Box
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      bgcolor: "white",
+                      borderRadius: "50%",
+                      mr: 2,
+                    }}
+                  />
+                  <Typography>{text}</Typography>
+                </Box>
+              ))}
             </Stack>
           </Stack>
         </motion.div>
 
-        {/* Decorative elements */}
+        {/* Decorative circles */}
         <Box
           sx={{
             position: "absolute",
@@ -155,7 +144,7 @@ function Login() {
         />
       </Grid>
 
-      {/* Right Side - Form Section */}
+      {/* Right Form Section */}
       <Grid
         item
         xs={12}
@@ -186,7 +175,6 @@ function Login() {
             <Stack spacing={2} alignItems="center" sx={{ mb: 4 }}>
               <Typography
                 variant="h3"
-                component="h1"
                 fontWeight="600"
                 sx={{
                   background: "linear-gradient(45deg, #4361ee, #3a0ca3)",
@@ -212,6 +200,7 @@ function Login() {
                   onChange={handleChange}
                   variant="outlined"
                   size="medium"
+                  required
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -220,11 +209,8 @@ function Login() {
                     ),
                   }}
                   sx={{
-                    "& .MuiOutlinedInput-root": {
-                      borderRadius: "12px",
-                    },
+                    "& .MuiOutlinedInput-root": { borderRadius: "12px" },
                   }}
-                  required
                 />
 
                 <TextField
@@ -236,6 +222,7 @@ function Login() {
                   onChange={handleChange}
                   variant="outlined"
                   size="medium"
+                  required
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -254,11 +241,8 @@ function Login() {
                     ),
                   }}
                   sx={{
-                    "& .MuiOutlinedInput-root": {
-                      borderRadius: "12px",
-                    },
+                    "& .MuiOutlinedInput-root": { borderRadius: "12px" },
                   }}
-                  required
                 />
 
                 <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
