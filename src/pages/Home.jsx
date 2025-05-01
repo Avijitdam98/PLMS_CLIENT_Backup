@@ -1,17 +1,21 @@
 // src/pages/Home.jsx
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, useTheme } from "@mui/material";
 import EligibilitySection from "../components/EligibilitySection";
 import EmiCalculator from "../components/EmiCalculator";
 import FaqSection from "../components/FaqSection";
-import FooterSection from "../components/FooterSection";
 import HeroSection from "../components/HeroSection";
 import TestimonialsSection from "../components/TestimonialsSection";
+import Chatbot from "../components/Chatbot";
 
 export default function Home() {
+  const theme = useTheme();
+
   return (
     <Box
       sx={{
-        backgroundColor: "#f4f7fb",
+        backgroundColor: theme.palette.mode === 'dark' 
+          ? theme.palette.background.default
+          : '#f4f7fb',
         minHeight: "100vh",
         fontFamily: "'Poppins', sans-serif",
         position: "relative",
@@ -24,7 +28,9 @@ export default function Home() {
         align="center"
         gutterBottom
         sx={{
-          color: "#005bea",
+          color: theme.palette.mode === 'dark' 
+            ? theme.palette.primary.light
+            : '#005bea',
           fontWeight: 800,
           mb: 4,
           position: "relative",
@@ -36,7 +42,9 @@ export default function Home() {
             transform: "translateX(-50%)",
             width: 100,
             height: 3,
-            backgroundColor: "#00c6fb",
+            backgroundColor: theme.palette.mode === 'dark'
+              ? theme.palette.primary.main
+              : '#00c6fb',
           },
         }}
       >
@@ -46,7 +54,7 @@ export default function Home() {
       <EligibilitySection />
       <TestimonialsSection />
       <FaqSection />
-      <FooterSection />
+      <Chatbot />
     </Box>
   );
 }

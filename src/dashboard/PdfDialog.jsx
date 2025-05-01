@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Box,
   Button,
@@ -14,16 +14,58 @@ import {
   Tooltip as MuiTooltip,
   Avatar,
   useTheme,
+  alpha,
+  Backdrop,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import {
   PictureAsPdf,
   Close as CloseIcon,
   Download as DownloadIcon,
   Folder as FolderIcon,
+  CheckCircle as CheckCircleIcon,
 } from "@mui/icons-material";
+import { motion } from "framer-motion";
+import { Card } from "@mui/material";
 
-const PdfDialog = ({ open, onClose, docsLoading, selectedDocs }) => {
+const PdfDialog = ({
+  open,
+  onClose,
+  docsLoading,
+  selectedDocs = [],
+  userRole,
+  onVerify,
+  processing = false,
+  snackbar = { open: false },
+  handleSnackbarClose = () => {},
+}) => {
   const theme = useTheme();
+
+  // Debug: Log the documents to console to check their structure
+  useEffect(() => {
+    // Check for required props
+    if (typeof open === 'undefined' || !onClose) {
+      console.warn('Required props missing in PdfDialog');
+      return;
+    }
+
+    if (selectedDocs && selectedDocs.length > 0) {
+      console.log("PDF Dialog Documents:", selectedDocs);
+    }
+  }, [open, onClose, selectedDocs]);
+
+  // Function to safely get document ID
+  const getDocumentId = (doc) => {
+    if (!doc) return null;
+    // Try different common ID properties
+    return doc.id || doc.documentId || doc._id || doc.docId || doc.document_id;
+  };
+
+  // Don't render if required props are missing
+  if (typeof open === 'undefined' || !onClose) {
+    return null;
+  }
 
   return (
     <Dialog
@@ -33,178 +75,232 @@ const PdfDialog = ({ open, onClose, docsLoading, selectedDocs }) => {
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: 4,
-          p: 0,
-          background: "linear-gradient(120deg, #e3f0ff 0%, #f8fafc 100%)",
-          boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.12)",
+          borderRadius: 3,
+          background: theme.palette.mode === 'dark'
+            ? alpha(theme.palette.background.paper, 0.9)
+            : '#fff',
+          backdropFilter: 'blur(10px)',
+          boxShadow: theme.palette.mode === 'dark'
+            ? '0 8px 32px 0 rgba(0, 0, 0, 0.3)'
+            : '0 8px 32px 0 rgba(31, 38, 135, 0.1)',
+          border: theme.palette.mode === 'dark'
+            ? '1px solid rgba(255, 255, 255, 0.1)'
+            : '1px solid rgba(255, 255, 255, 0.18)',
         },
       }}
     >
-      <DialogTitle
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          px: 4,
-          py: 2,
-          background: "linear-gradient(90deg, #1976d2 0%, #4f8cff 100%)",
-          color: "#fff",
-          borderTopLeftRadius: 16,
-          borderTopRightRadius: 16,
-        }}
-      >
-        <Stack direction="row" alignItems="center" spacing={1}>
-          <Avatar
+      <DialogTitle>
+        <Typography
+          variant="h5"
+          sx={{
+            fontWeight: 700,
+            color: theme.palette.mode === 'dark'
+              ? theme.palette.primary.light
+              : theme.palette.primary.main,
+          }}
+        >
+          Loan Documents
+        </Typography>
+      </DialogTitle>
+
+      <DialogContent dividers sx={{ p: 0, minHeight: 400 }}>
+        {docsLoading ? (
+          <Box
             sx={{
-              bgcolor: "#fff",
-              color: "#1976d2",
-              width: 36,
-              height: 36,
-              boxShadow: 1,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              height: 300,
             }}
           >
-            <FolderIcon />
-          </Avatar>
-          <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: 0.5 }}>
-            My DigiLocker Documents
-          </Typography>
-        </Stack>
-        <IconButton onClick={onClose} sx={{ color: "#fff" }}>
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
-      <DialogContent
-        dividers
-        sx={{
-          background: "rgba(255,255,255,0.95)",
-          px: { xs: 1, sm: 4 },
-          py: 3,
-        }}
-      >
-        {docsLoading ? (
-          <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
-            <CircularProgress color="primary" />
+            <CircularProgress />
           </Box>
         ) : selectedDocs.length === 0 ? (
-          <Typography
-            align="center"
-            color="text.secondary"
-            sx={{ fontWeight: 500 }}
-          >
-            No documents found.
-          </Typography>
+          <Box sx={{ p: 3, textAlign: "center" }}>
+            <Typography 
+              variant="body1"
+              sx={{
+                color: theme.palette.mode === 'dark'
+                  ? theme.palette.text.primary
+                  : undefined,
+              }}
+            >
+              No documents found
+            </Typography>
+          </Box>
         ) : (
-          <Stack spacing={2}>
-            {selectedDocs.map((doc, idx) => (
-              <Box
-                key={doc.downloadUrl || idx}
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  p: 2,
-                  borderRadius: 3,
-                  background:
-                    "linear-gradient(90deg, #f0f6ff 0%, #ffffff 100%)",
-                  boxShadow: "0 2px 8px rgba(25, 118, 210, 0.07)",
-                  transition: "box-shadow 0.25s, transform 0.2s",
-                  "&:hover": {
-                    boxShadow: "0 4px 16px rgba(25, 118, 210, 0.15)",
-                    transform: "translateY(-2px) scale(1.01)",
-                  },
-                  gap: 2,
-                }}
+          <Box sx={{ p: 2 }}>
+            <Typography
+              variant="subtitle1"
+              sx={{ 
+                mb: 2, 
+                fontWeight: 600,
+                color: theme.palette.mode === 'dark'
+                  ? theme.palette.text.primary
+                  : undefined,
+              }}
+            >
+              Available Documents
+            </Typography>
+            {selectedDocs.map((doc) => (
+              <motion.div
+                key={doc.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
               >
-                <Avatar
-                  variant="rounded"
+                <Card
                   sx={{
-                    bgcolor: "#fff",
-                    border: `2px solid ${theme.palette.error.main}`,
-                    color: theme.palette.error.main,
-                    width: 48,
-                    height: 48,
-                    mr: 2,
+                    mb: 2,
+                    p: 2,
+                    borderRadius: 2,
+                    boxShadow: theme.palette.mode === 'dark'
+                      ? '0 2px 8px rgba(0,0,0,0.2)'
+                      : '0 2px 8px rgba(0,0,0,0.1)',
+                    background: theme.palette.mode === 'dark'
+                      ? alpha(theme.palette.background.paper, 0.6)
+                      : 'linear-gradient(135deg, #fffbe0, #f7f0c8)',
                   }}
                 >
-                  <PictureAsPdf sx={{ fontSize: 32 }} />
-                </Avatar>
-                <Box sx={{ flex: 1 }}>
-                  <Typography sx={{ fontWeight: 600, fontSize: 16 }}>
-                    {doc.fileName || doc.documentType || "PDF Document"}
-                  </Typography>
-                  <Chip
-                    label={doc.documentType}
-                    size="small"
-                    color="info"
+                  <Box
                     sx={{
-                      mt: 0.5,
-                      fontWeight: 500,
-                      background: "#e3f0ff",
-                      color: "#1976d2",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
                     }}
-                  />
-                </Box>
-                <MuiTooltip title="Open PDF in new tab" arrow>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    size="small"
-                    sx={{
-                      mr: 1,
-                      borderRadius: 2,
-                      minWidth: 90,
-                      boxShadow: "none",
-                      textTransform: "none",
-                      fontWeight: 600,
-                    }}
-                    onClick={() =>
-                      window.open(
-                        `http://localhost:8732${doc.downloadUrl}`,
-                        "_blank"
-                      )
-                    }
                   >
-                    View
-                  </Button>
-                </MuiTooltip>
-                <MuiTooltip title="Download PDF" arrow>
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    size="small"
-                    sx={{
-                      borderRadius: 2,
-                      minWidth: 110,
-                      textTransform: "none",
-                      fontWeight: 600,
-                      borderWidth: 2,
-                    }}
-                    href={`http://localhost:8732${doc.downloadUrl}`}
-                    target="_blank"
-                    startIcon={<DownloadIcon />}
-                  >
-                    Download
-                  </Button>
-                </MuiTooltip>
-              </Box>
+                    <Box>
+                      <Typography
+                        variant="subtitle1"
+                        fontWeight="medium"
+                        sx={{
+                          color: theme.palette.mode === 'dark'
+                            ? theme.palette.text.primary
+                            : undefined,
+                        }}
+                      >
+                        {doc.fileName || doc.documentType || "PDF Document"}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{
+                          color: theme.palette.mode === 'dark'
+                            ? theme.palette.text.secondary
+                            : undefined,
+                        }}
+                      >
+                        Uploaded on: {doc.uploadDate}
+                      </Typography>
+                    </Box>
+
+                    <Box sx={{ display: "flex", alignItems: "center" }}>
+                      <Chip
+                        label={doc.documentType}
+                        size="small"
+                        color="info"
+                        sx={{ 
+                          mr: 2,
+                          background: theme.palette.mode === 'dark'
+                            ? alpha(theme.palette.info.main, 0.2)
+                            : '#e3f0ff',
+                          color: theme.palette.mode === 'dark'
+                            ? theme.palette.info.light
+                            : '#1976d2',
+                        }}
+                      />
+
+                      <MuiTooltip title="Download PDF" arrow>
+                        <Button
+                          variant="outlined"
+                          color="primary"
+                          size="small"
+                          sx={{
+                            borderRadius: 2,
+                            minWidth: 110,
+                            textTransform: "none",
+                            fontWeight: 600,
+                            borderWidth: 2,
+                          }}
+                          href={`http://localhost:8732${doc.downloadUrl}`}
+                          target="_blank"
+                          startIcon={<DownloadIcon />}
+                        >
+                          Download
+                        </Button>
+                      </MuiTooltip>
+                      {/* ADMIN VERIFY BUTTON - WITH FIX */}
+                      {userRole === "ADMIN" && !doc.isVerified && getDocumentId(doc) && (
+                        <MuiTooltip title="Verify Document" arrow>
+                          <Button
+                            variant="outlined"
+                            color="success"
+                            sx={{ ml: 1, minWidth: 100, fontWeight: 600 }}
+                            onClick={() => onVerify(getDocumentId(doc))}
+                            startIcon={<CheckCircleIcon />}
+                          >
+                            Verify
+                          </Button>
+                        </MuiTooltip>
+                      )}
+                    </Box>
+                  </Box>
+                </Card>
+              </motion.div>
             ))}
-          </Stack>
+          </Box>
         )}
       </DialogContent>
-      <DialogActions sx={{ px: 4, pb: 2, pt: 1 }}>
-        <Button
-          onClick={onClose}
-          sx={{
-            borderRadius: 2,
-            fontWeight: 600,
-            minWidth: 100,
-            color: "#1976d2",
-            borderColor: "#1976d2",
-          }}
+
+      <DialogActions sx={{ p: 2 }}>
+        <Button 
+          onClick={onClose} 
           variant="outlined"
+          sx={{
+            borderColor: theme.palette.mode === 'dark'
+              ? alpha(theme.palette.primary.main, 0.5)
+              : undefined,
+            color: theme.palette.mode === 'dark'
+              ? theme.palette.primary.light
+              : undefined,
+          }}
         >
           Close
         </Button>
       </DialogActions>
+
+      <Backdrop
+        open={Boolean(processing)}
+        sx={{ 
+          color: "#fff", 
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          background: theme.palette.mode === 'dark'
+            ? alpha(theme.palette.background.paper, 0.8)
+            : undefined,
+        }}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
+
+      <Snackbar
+        open={Boolean(snackbar?.open)}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleSnackbarClose}
+          severity={snackbar?.severity || 'info'}
+          sx={{ 
+            width: "100%",
+            background: theme.palette.mode === 'dark'
+              ? alpha(theme.palette.background.paper, 0.9)
+              : undefined,
+          }}
+        >
+          {snackbar?.message || ''}
+        </Alert>
+      </Snackbar>
     </Dialog>
   );
 };

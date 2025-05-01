@@ -54,56 +54,65 @@ function hashCode(str) {
 
 function getCreditScoreFromPan(pan) {
   if (!pan || pan.length < 5) return "";
-  return 300 + (hashCode(pan) % 601);
+  let hash = 0;
+  pan = pan.toUpperCase();
+  for (let i = 0; i < pan.length; i++) {
+    hash = (hash << 5) - hash + pan.charCodeAt(i);
+    hash |= 0;
+  }
+  hash = Math.abs(hash);
+  return 550 + (hash % 301);
 }
 
 const steps = ["Personal Info", "Loan Details", "Documents", "Review & Submit"];
 const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
 
+// Professions aligned with SBI's professional loan schemes
 const professions = [
-  "Software Engineer",
   "Doctor",
-  "Teacher",
-  "Accountant",
-  "Entrepreneur",
-  "Government Employee",
   "Lawyer",
-  "Other",
+  "Chartered Accountant",
+  "Architect",
+  "Engineer",
+  "Company Secretary",
+  "Dentist",
+  "Other Professional",
 ];
 
+// Work-related loan purposes only, matching SBI's focus
 const loanPurposes = [
-  "Home Purchase",
-  "Car Purchase",
-  "Education",
-  "Business",
-  "Medical Expenses",
-  "Debt Consolidation",
-  "Personal Use",
+  "Practice/Clinic Setup",
+  "Equipment Purchase",
+  "Working Capital",
+  "Office Renovation",
+  "Professional Development",
+  "Business Expansion",
 ];
 
-const loanTenures = [12, 24, 36, 48, 60, 72, 84, 96, 108, 120];
+// Tenure limited to 84 months max, as per SBI
+const loanTenures = [12, 24, 36, 48, 60, 72, 84];
 
-// Step-specific details content
+// Step details emphasizing work-related professional loans
 const stepDetails = {
   0: {
     title: "Personal Information",
     content:
-      "Provide your full legal name and select your profession from the dropdown. This information helps us verify your identity and assess your eligibility.",
+      "Provide your full legal name and select your professional occupation. This verifies your eligibility for a work-related professional loan.",
   },
   1: {
     title: "Loan Details",
     content:
-      "Specify the loan purpose, amount, tenure, and PAN card details. Ensure your PAN card is valid as it determines your credit score, which impacts loan approval.",
+      "Specify the work-related loan purpose (e.g., practice setup, equipment purchase), amount (minimum ₹1,00,000), tenure (up to 84 months), and PAN card details. A valid PAN is required for credit score assessment.",
   },
   2: {
     title: "Document Upload",
     content:
-      "Upload your latest PF Account Statement and Salary Slip in PDF format (max 5MB each). These documents are required to verify your financial status.",
+      "Upload your latest PF Account Statement and Salary Slip in PDF format (max 5MB each) to verify your income and financial status as a professional.",
   },
   3: {
     title: "Review & Submit",
     content:
-      "Carefully review all entered details and uploaded documents. Once submitted, you cannot edit your application. Ensure everything is accurate before proceeding.",
+      "Review all details and documents carefully. Ensure accuracy before submitting your work-related professional loan application, as it cannot be edited post-submission.",
   },
 };
 
@@ -149,9 +158,9 @@ function LoanApplication() {
       if (
         !formData.loanAmount ||
         isNaN(formData.loanAmount) ||
-        Number(formData.loanAmount) < 1000
+        Number(formData.loanAmount) < 100000
       )
-        return "Loan amount must be at least ₹1,000";
+        return "Loan amount must be at least ₹1,00,000";
       if (!formData.panCard.trim()) return "PAN card is required";
       if (!panRegex.test(formData.panCard))
         return "Enter a valid PAN card (e.g. ABCDE1234F)";
@@ -212,7 +221,7 @@ function LoanApplication() {
       return;
     }
     if (!user.id) {
-      setError("Please log in to apply for a loan");
+      setError("Please log in to apply for a professional loan");
       navigate("/login");
       return;
     }
@@ -231,7 +240,7 @@ function LoanApplication() {
       await axios.post("http://localhost:8732/api/loans/apply", data, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      setSuccess("Application submitted successfully!");
+      setSuccess("Professional loan application submitted successfully!");
       setTimeout(() => navigate("/dashboard"), 2000);
     } catch (error) {
       setError(error.response?.data?.message || "Application failed");
@@ -299,7 +308,7 @@ function LoanApplication() {
               </Tooltip>
             </Grid>
             <Grid item xs={12} md={6}>
-              <Tooltip title="Select your profession" arrow>
+              <Tooltip title="Select your professional occupation" arrow>
                 <FormControl fullWidth required sx={{ borderRadius: 3 }}>
                   <InputLabel
                     sx={{
@@ -353,7 +362,7 @@ function LoanApplication() {
         return (
           <Grid container spacing={3}>
             <Grid item xs={12} md={6}>
-              <Tooltip title="Select the purpose of your loan" arrow>
+              <Tooltip title="Select the work-related purpose of your professional loan" arrow>
                 <FormControl fullWidth required sx={{ borderRadius: 3 }}>
                   <InputLabel
                     sx={{
@@ -474,7 +483,7 @@ function LoanApplication() {
               )}
             </Grid>
             <Grid item xs={12} md={6}>
-              <Tooltip title="Select your desired loan tenure" arrow>
+              <Tooltip title="Select your desired loan tenure (up to 84 months)" arrow>
                 <FormControl fullWidth required sx={{ borderRadius: 3 }}>
                   <InputLabel
                     sx={{
@@ -519,7 +528,7 @@ function LoanApplication() {
             </Grid>
             <Grid item xs={12}>
               <Tooltip
-                title="Enter the amount you wish to borrow (minimum ₹1,000)"
+                title="Enter the amount you wish to borrow (minimum ₹1,00,000)"
                 arrow
               >
                 <TextField
@@ -557,14 +566,14 @@ function LoanApplication() {
                         style={{ marginRight: 12 }}
                       />
                     ),
-                    inputProps: { min: 1000 },
+                    inputProps: { min: 100000 },
                   }}
                   error={
-                    !!formData.loanAmount && Number(formData.loanAmount) < 1000
+                    !!formData.loanAmount && Number(formData.loanAmount) < 100000
                   }
                   helperText={
-                    !!formData.loanAmount && Number(formData.loanAmount) < 1000
-                      ? "Minimum loan amount is ₹1,000"
+                    !!formData.loanAmount && Number(formData.loanAmount) < 100000
+                      ? "Minimum loan amount is ₹1,00,000"
                       : " "
                   }
                 />
@@ -577,7 +586,7 @@ function LoanApplication() {
           <Grid container spacing={3}>
             <Grid item xs={12} md={6}>
               <Tooltip
-                title="Upload your latest PF Account Statement (PDF, max 5MB)"
+                title="Upload your latest PF Account Statement (PDF, max 5MB) for income verification"
                 arrow
               >
                 <Box
@@ -689,7 +698,7 @@ function LoanApplication() {
             </Grid>
             <Grid item xs={12} md={6}>
               <Tooltip
-                title="Upload your latest Salary Slip (PDF, max 5MB)"
+                title="Upload your latest Salary Slip (PDF, max 5MB) for income verification"
                 arrow
               >
                 <Box
@@ -808,7 +817,7 @@ function LoanApplication() {
               variant="h6"
               sx={{ mb: 2, fontWeight: 700, color: "#1e293b" }}
             >
-              Review Your Application
+              Review Your Professional Loan Application
             </Typography>
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
@@ -868,8 +877,10 @@ function LoanApplication() {
                   boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
                 }}
               >
-                Please verify all details before submitting. Once submitted, you
-                cannot edit this application.
+                Please verify all details before submitting your work-related
+                professional loan application. This loan is exclusively for
+                professional purposes like practice setup or equipment purchase.
+                Once submitted, you cannot edit this application.
               </Alert>
             </Box>
           </Box>
@@ -914,7 +925,7 @@ function LoanApplication() {
               Authentication Required
             </Typography>
             <Typography variant="body1" sx={{ mb: 4, color: "text.secondary" }}>
-              Please sign in to access the loan application portal
+              Please sign in to access the professional loan application portal
             </Typography>
             <Button
               variant="contained"
@@ -963,7 +974,7 @@ function LoanApplication() {
               background: "rgba(255, 255, 255, 0.95)",
               backdropFilter: "blur(16px)",
               borderRadius: 4,
-              boxShadow: "0 16px 40px rgba(0, 0, 0, 0.1)",
+              boxShadow: "0 16px 40px rgba(0, k0, 0, 0.1)",
               p: { xs: 3, md: 5 },
               border: "1px solid rgba(255, 255, 255, 0.3)",
             }}
@@ -1002,10 +1013,10 @@ function LoanApplication() {
                       WebkitTextFillColor: "transparent",
                     }}
                   >
-                    Loan Application
+                    Professional Loan Application
                   </Typography>
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                    Complete your application in just a few steps
+                    Apply for a work-related loan in a few simple steps
                   </Typography>
                 </Box>
               </Stack>

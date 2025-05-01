@@ -23,19 +23,19 @@ function CreditScoreCheck() {
   };
 
   const calculateCreditScore = (pan) => {
-    const digits = pan.slice(5, 9).split("").map(Number);
-    const digitSum = digits.reduce((sum, digit) => sum + digit, 0);
-    const weights = [4, 3, 2, 1];
-    const weightedSum = digits.reduce(
-      (sum, digit, index) => sum + digit * weights[index],
-      0
-    );
-    const baseScore = (digitSum * 10 + weightedSum) % 100;
-    let score = 500 + (baseScore / 100) * (900 - 500);
-    const randomAdjustment = Math.floor(Math.random() * 41) - 20;
-    score += randomAdjustment;
-    return Math.min(900, Math.max(500, Math.round(score)));
+    const upperPan = pan.toUpperCase();
+    let hash = 0;
+
+    for (let i = 0; i < upperPan.length; i++) {
+      hash = (hash << 5) - hash + upperPan.charCodeAt(i);
+      hash |= 0; // Convert to 32-bit integer
+    }
+
+    const absHash = Math.abs(hash);
+    const creditScore = 550 + (absHash % 301); // Range: 550 to 850
+    return creditScore;
   };
+
 
   const handleSubmit = (e) => {
     e.preventDefault();

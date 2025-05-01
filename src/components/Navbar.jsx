@@ -1,88 +1,136 @@
-import React, { useState, useEffect } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import AccountBalanceRoundedIcon from "@mui/icons-material/AccountBalanceRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import CreditScoreRoundedIcon from "@mui/icons-material/CreditScoreRounded";
+import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
+import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
+import LoginRoundedIcon from "@mui/icons-material/LoginRounded";
+import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
+import MenuIcon from "@mui/icons-material/Menu";
+import PersonAddRoundedIcon from "@mui/icons-material/PersonAddRounded";
+import PictureAsPdf from "@mui/icons-material/PictureAsPdf";
+import Brightness4Icon from "@mui/icons-material/Brightness4";
+import Brightness7Icon from "@mui/icons-material/Brightness7";
 import {
   AppBar,
+  Avatar,
   Box,
-  Toolbar,
-  IconButton,
-  Typography,
-  Container,
   Button,
-  useTheme,
-  useMediaQuery,
+  Container,
+  Divider,
   Drawer,
+  IconButton,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
+  Menu,
+  MenuItem,
+  Toolbar,
+  Typography,
+  useTheme,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import MenuIcon from "@mui/icons-material/Menu";
-import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
-import AccountBalanceRoundedIcon from "@mui/icons-material/AccountBalanceRounded";
-import CreditScoreRoundedIcon from "@mui/icons-material/CreditScoreRounded";
-import LoginRoundedIcon from "@mui/icons-material/LoginRounded";
-import PersonAddRoundedIcon from "@mui/icons-material/PersonAddRounded";
-import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
-import PictureAsPdf from "@mui/icons-material/PictureAsPdf";
-import { motion } from "framer-motion";
+import { motion as Motion } from "framer-motion";
+import React, { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useThemeContext } from "../context/ThemeContext";
 
 const StyledAppBar = styled(AppBar)(({ theme }) => ({
-  background: "rgba(255, 255, 255, 0.8)",
-  backdropFilter: "blur(10px)",
-  boxShadow: "0 4px 30px rgba(0, 0, 0, 0.1)",
-  borderBottom: "1px solid rgba(255, 255, 255, 0.3)",
+  background: theme.palette.mode === 'dark' 
+    ? 'rgba(13, 17, 23, 0.95)'
+    : 'rgba(255, 255, 255, 0.95)',
+  backdropFilter: 'blur(10px)',
+  boxShadow: theme.palette.mode === 'dark'
+    ? '0 4px 30px rgba(0, 0, 0, 0.3)'
+    : '0 4px 30px rgba(0, 0, 0, 0.1)',
+  borderBottom: theme.palette.mode === 'dark'
+    ? '1px solid rgba(255, 255, 255, 0.1)'
+    : '1px solid rgba(0, 0, 0, 0.1)',
+  transition: 'all 0.3s ease',
 }));
 
 const NavButton = styled(Button)(({ theme, active }) => ({
-  color: active ? theme.palette.primary.main : "#555",
+  color: active 
+    ? theme.palette.mode === 'dark' ? '#4CAF50' : '#2E7D32'
+    : theme.palette.text.primary,
   fontWeight: 600,
-  fontSize: "0.95rem",
-  padding: "8px 16px",
-  borderRadius: "12px",
-  textTransform: "none",
-  transition: "all 0.3s ease",
-  position: "relative",
-  overflow: "hidden",
-  "&:hover": {
-    background: "rgba(0, 45, 98, 0.05)",
-    transform: "translateY(-2px)",
+  fontSize: '0.95rem',
+  padding: '8px 16px',
+  borderRadius: '8px',
+  textTransform: 'none',
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  position: 'relative',
+  overflow: 'hidden',
+  background: active 
+    ? theme.palette.mode === 'dark'
+      ? 'rgba(76, 175, 80, 0.1)'
+      : 'rgba(46, 125, 50, 0.08)'
+    : 'transparent',
+  '&:hover': {
+    background: theme.palette.mode === 'dark'
+      ? 'rgba(76, 175, 80, 0.15)'
+      : 'rgba(46, 125, 50, 0.12)',
+    transform: 'translateY(-2px)',
   },
-  "&::after": {
+  '&::after': {
     content: '""',
-    position: "absolute",
+    position: 'absolute',
     bottom: 0,
-    left: "50%",
-    width: active ? "100%" : "0%",
-    height: "3px",
-    background: "linear-gradient(90deg, #002D62, #F9B233)",
-    transition: "all 0.3s ease",
-    transform: "translateX(-50%)",
+    left: '50%',
+    width: active ? '100%' : '0%',
+    height: '2px',
+    background: theme.palette.mode === 'dark'
+      ? 'linear-gradient(90deg, #4CAF50, #81C784)'
+      : 'linear-gradient(90deg, #2E7D32, #4CAF50)',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    transform: 'translateX(-50%)',
+    borderRadius: '2px',
   },
 }));
 
 const SignInButton = styled(Button)(({ theme }) => ({
-  background: "linear-gradient(45deg, #002D62 30%, #F9B233 90%)",
+  background: theme.palette.mode === 'dark'
+    ? 'linear-gradient(45deg, #2E7D32 30%, #4CAF50 90%)'
+    : 'linear-gradient(45deg, #1B5E20 30%, #2E7D32 90%)',
   border: 0,
-  borderRadius: "12px",
-  color: "white",
-  padding: "8px 24px",
+  borderRadius: '8px',
+  color: 'white',
+  padding: '8px 24px',
   fontWeight: 600,
-  textTransform: "none",
-  transition: "all 0.3s ease",
-  "&:hover": {
-    transform: "translateY(-2px)",
-    boxShadow: "0 4px 12px rgba(0, 45, 98, 0.2)",
+  textTransform: 'none',
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  position: 'relative',
+  overflow: 'hidden',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'linear-gradient(45deg, rgba(255,255,255,0.1), rgba(255,255,255,0))',
+    opacity: 0,
+    transition: 'opacity 0.3s ease',
+  },
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: theme.palette.mode === 'dark'
+      ? '0 4px 12px rgba(76, 175, 80, 0.3)'
+      : '0 4px 12px rgba(46, 125, 50, 0.2)',
+    '&::before': {
+      opacity: 1,
+    },
+  },
+  '&:active': {
+    transform: 'translateY(0)',
   },
 }));
 
-const LogoutButton = styled(Button)(({ theme }) => ({
+const LogoutButton = styled(Button)(() => ({
   background: "linear-gradient(45deg, #dc3545 30%, #ff4d4d 90%)",
   border: 0,
-  borderRadius: "12px",
+  borderRadius: "8px",
   color: "white",
   padding: "8px 24px",
   fontWeight: 600,
@@ -95,27 +143,134 @@ const LogoutButton = styled(Button)(({ theme }) => ({
 }));
 
 const Logo = styled(Typography)(({ theme }) => ({
-  background: "linear-gradient(45deg, #002D62, #F9B233)",
-  WebkitBackgroundClip: "text",
-  WebkitTextFillColor: "transparent",
+  background: theme.palette.mode === 'dark'
+    ? 'linear-gradient(45deg, #4CAF50, #81C784)'
+    : 'linear-gradient(45deg, #2E7D32, #4CAF50)',
+  WebkitBackgroundClip: 'text',
+  WebkitTextFillColor: 'transparent',
   fontWeight: 800,
-  fontSize: "1.5rem",
-  cursor: "pointer",
-  "&:hover": {
-    transform: "scale(1.05)",
+  fontSize: '1.5rem',
+  cursor: 'pointer',
+  position: 'relative',
+  '&::after': {
+    content: '""',
+    position: 'absolute',
+    bottom: -4,
+    left: 0,
+    width: '100%',
+    height: '2px',
+    background: theme.palette.mode === 'dark'
+      ? 'linear-gradient(90deg, #4CAF50, #81C784)'
+      : 'linear-gradient(90deg, #2E7D32, #4CAF50)',
+    transform: 'scaleX(0)',
+    transformOrigin: 'right',
+    transition: 'transform 0.3s ease',
   },
-  transition: "transform 0.3s ease",
+  '&:hover': {
+    transform: 'scale(1.05)',
+    '&::after': {
+      transform: 'scaleX(1)',
+      transformOrigin: 'left',
+    },
+  },
+  transition: 'all 0.3s ease',
+}));
+
+const UserAvatar = styled(Avatar)(({ theme }) => ({
+  border: `2px solid ${theme.palette.mode === 'dark' ? '#4CAF50' : '#2E7D32'}`,
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    transform: 'scale(1.1)',
+    boxShadow: theme.palette.mode === 'dark'
+      ? '0 0 15px rgba(76, 175, 80, 0.4)'
+      : '0 0 15px rgba(46, 125, 50, 0.3)',
+  },
+}));
+
+const getUserInitials = (user) => {
+  if (!user || !user.name) return "U";
+  return user.name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase();
+};
+
+const ThemeToggleButton = styled(IconButton)(({ theme }) => ({
+  position: 'relative',
+  width: 52,
+  height: 52,
+  borderRadius: '50%',
+  background: theme.palette.mode === 'dark' 
+    ? 'linear-gradient(145deg, #1a237e, #0d47a1)'
+    : 'linear-gradient(145deg, #e3f2fd, #bbdefb)',
+  color: theme.palette.mode === 'dark' ? '#fff' : '#1a237e',
+  boxShadow: theme.palette.mode === 'dark'
+    ? '0 4px 15px rgba(0, 0, 0, 0.3)'
+    : '0 4px 15px rgba(0, 0, 0, 0.1)',
+  transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+  overflow: 'hidden',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: theme.palette.mode === 'dark'
+      ? 'radial-gradient(circle at center, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 70%)'
+      : 'radial-gradient(circle at center, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%)',
+    opacity: 0,
+    transition: 'opacity 0.5s ease',
+  },
+  '&::after': {
+    content: '""',
+    position: 'absolute',
+    top: '-50%',
+    left: '-50%',
+    width: '200%',
+    height: '200%',
+    background: theme.palette.mode === 'dark'
+      ? 'conic-gradient(from 0deg, transparent, rgba(255,255,255,0.1), transparent)'
+      : 'conic-gradient(from 0deg, transparent, rgba(255,255,255,0.5), transparent)',
+    animation: 'rotate 4s linear infinite',
+    opacity: 0,
+    transition: 'opacity 0.5s ease',
+  },
+  '@keyframes rotate': {
+    '0%': {
+      transform: 'rotate(0deg)',
+    },
+    '100%': {
+      transform: 'rotate(360deg)',
+    },
+  },
+  '&:hover': {
+    transform: 'scale(1.1)',
+    boxShadow: theme.palette.mode === 'dark'
+      ? '0 8px 25px rgba(0, 0, 0, 0.4)'
+      : '0 8px 25px rgba(0, 0, 0, 0.15)',
+    '&::before': {
+      opacity: 1,
+    },
+    '&::after': {
+      opacity: 1,
+    },
+  },
+  '&:active': {
+    transform: 'scale(0.95)',
+  },
 }));
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState(null);
+  const [anchorEl, setAnchorEl] = useState(null);
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const location = useLocation();
   const navigate = useNavigate();
+  const { mode, toggleTheme } = useThemeContext();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -128,8 +283,7 @@ const Navbar = () => {
   useEffect(() => {
     const checkAuth = () => {
       const user = JSON.parse(localStorage.getItem("user") || "{}");
-      setIsAuthenticated(!!user.id);
-      setUserRole(user.role || null);
+      setIsAuthenticated(user.id != null && user.role);
     };
 
     checkAuth();
@@ -141,15 +295,22 @@ const Navbar = () => {
     setMobileOpen(!mobileOpen);
   };
 
-  // Only show Document Hub if userRole === "USER"
+  const handleProfileClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+  const handleProfileClose = () => {
+    setAnchorEl(null);
+  };
+
   const getNavItems = () => {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
     const items = [{ title: "Home", path: "/", icon: <HomeRoundedIcon /> }];
 
     if (isAuthenticated) {
       items.push(
         {
           title: "Dashboard",
-          path: "/dashboard",
+          path: user.role === "ADMIN" ? "/admin-dashboard" : "/dashboard",
           icon: <DashboardRoundedIcon />,
         },
         {
@@ -158,7 +319,7 @@ const Navbar = () => {
           icon: <CreditScoreRoundedIcon />,
         }
       );
-      if (userRole === "USER") {
+      if (user.role === "USER") {
         items.push(
           {
             title: "Document Hub",
@@ -173,11 +334,9 @@ const Navbar = () => {
         );
       }
     }
-
     return items;
   };
 
-  // Redirect to HOME after logout
   const handleLogout = () => {
     localStorage.removeItem("user");
     window.dispatchEvent(new Event("storage"));
@@ -190,7 +349,7 @@ const Navbar = () => {
       <Box
         sx={{ display: "flex", justifyContent: "space-between", px: 2, mb: 2 }}
       >
-        <Logo>SundaramProLoan</Logo>
+        <Logo>FinTechProLoan</Logo>
         <IconButton onClick={handleDrawerToggle}>
           <CloseRoundedIcon />
         </IconButton>
@@ -305,119 +464,160 @@ const Navbar = () => {
   );
 
   return (
-    <motion.div
+    <Motion.div
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.5 }}
     >
       <StyledAppBar
-        position="fixed"
-        sx={{
-          py: 1,
-          transform: scrolled ? "translateY(0)" : "none",
-          transition: "transform 0.3s ease",
-        }}
+        position="sticky"
+        elevation={scrolled ? 4 : 0}
       >
-        <Container maxWidth="xl">
+        <Container maxWidth="lg">
           <Toolbar disableGutters>
-            <Logo
-              component={Link}
-              to="/"
-              sx={{ display: "flex", alignItems: "center", gap: 1 }}
-            >
-              SundaramProLoan
-            </Logo>
-
-            {isMobile ? (
+            <Box sx={{ display: "flex", alignItems: "center", flexGrow: 1 }}>
               <IconButton
-                color="primary"
+                color="inherit"
                 aria-label="open drawer"
                 edge="start"
                 onClick={handleDrawerToggle}
-                sx={{ ml: "auto" }}
+                sx={{ mr: 2, display: { md: "none" } }}
               >
                 <MenuIcon />
               </IconButton>
-            ) : (
-              <Box
+              <Logo component={Link} to="/">
+                FinTechProLoan
+              </Logo>
+            </Box>
+
+            <Box sx={{ display: { xs: "none", md: "flex" }, gap: 2 }}>
+              {getNavItems().map((item) => (
+                <NavButton
+                  key={item.title}
+                  component={Link}
+                  to={item.path}
+                  active={location.pathname === item.path}
+                  startIcon={item.icon}
+                >
+                  {item.title}
+                </NavButton>
+              ))}
+            </Box>
+
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <ThemeToggleButton
+                onClick={toggleTheme}
+                aria-label="toggle theme"
                 sx={{
-                  ml: "auto",
-                  display: "flex",
-                  gap: 2,
-                  alignItems: "center",
+                  ml: 2,
+                  '& .MuiSvgIcon-root': {
+                    fontSize: '1.75rem',
+                    transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                    transform: mode === 'dark' ? 'rotate(180deg) scale(1.1)' : 'rotate(0deg) scale(1)',
+                    filter: mode === 'dark' ? 'drop-shadow(0 0 8px rgba(255,255,255,0.3))' : 'none',
+                  },
                 }}
               >
-                {getNavItems().map((item) => (
-                  <NavButton
-                    key={item.title}
-                    component={Link}
-                    to={item.path}
-                    active={location.pathname === item.path ? 1 : 0}
-                    startIcon={item.icon}
+                {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+              </ThemeToggleButton>
+
+              {isAuthenticated ? (
+                <>
+                  <IconButton
+                    onClick={handleProfileClick}
+                    sx={{
+                      p: 0,
+                      border: "2px solid",
+                      borderColor: "primary.main",
+                    }}
                   >
-                    {item.title}
-                  </NavButton>
-                ))}
-                {!isAuthenticated ? (
-                  <>
-                    <SignInButton
-                      component={Link}
-                      to="/login"
-                      startIcon={<LoginRoundedIcon />}
-                    >
-                      Login
-                    </SignInButton>
-                    <Button
-                      component={Link}
-                      to="/register"
-                      variant="outlined"
-                      startIcon={<PersonAddRoundedIcon />}
+                    <UserAvatar
                       sx={{
-                        borderRadius: "12px",
-                        textTransform: "none",
-                        fontWeight: 600,
-                        borderWidth: 2,
-                        "&:hover": {
-                          borderWidth: 2,
-                          transform: "translateY(-2px)",
-                        },
+                        bgcolor: theme.palette.mode === 'dark' ? '#4CAF50' : '#2E7D32',
+                        color: 'white',
+                        width: 40,
+                        height: 40,
                       }}
                     >
-                      Register
-                    </Button>
-                  </>
-                ) : (
-                  <LogoutButton
-                    onClick={handleLogout}
-                    startIcon={<LogoutRoundedIcon />}
+                      {getUserInitials(JSON.parse(localStorage.getItem('user')))}
+                    </UserAvatar>
+                  </IconButton>
+                  <Menu
+                    anchorEl={anchorEl}
+                    open={Boolean(anchorEl)}
+                    onClose={handleProfileClose}
+                    PaperProps={{
+                      sx: {
+                        mt: 1.5,
+                        borderRadius: 2,
+                        boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
+                      },
+                    }}
                   >
-                    Logout
-                  </LogoutButton>
-                )}
-              </Box>
-            )}
+                    <MenuItem
+                      component={Link}
+                      to="/profile"
+                      onClick={handleProfileClose}
+                    >
+                      <ListItemIcon>
+                        <PersonAddRoundedIcon fontSize="small" />
+                      </ListItemIcon>
+                      Profile
+                    </MenuItem>
+                    <Divider />
+                    <MenuItem onClick={handleLogout}>
+                      <ListItemIcon>
+                        <LogoutRoundedIcon fontSize="small" />
+                      </ListItemIcon>
+                      Logout
+                    </MenuItem>
+                  </Menu>
+                </>
+              ) : (
+                <>
+                  <Button
+                    component={Link}
+                    to="/login"
+                    startIcon={<LoginRoundedIcon />}
+                    sx={{
+                      color: "text.primary",
+                      display: { xs: "none", sm: "flex" },
+                    }}
+                  >
+                    Login
+                  </Button>
+                  <SignInButton
+                    component={Link}
+                    to="/register"
+                    startIcon={<PersonAddRoundedIcon />}
+                  >
+                    Sign Up
+                  </SignInButton>
+                </>
+              )}
+            </Box>
           </Toolbar>
         </Container>
       </StyledAppBar>
       <Drawer
         variant="temporary"
-        anchor="right"
+        anchor="left"
         open={mobileOpen}
         onClose={handleDrawerToggle}
         ModalProps={{
           keepMounted: true,
         }}
-        PaperProps={{
-          sx: {
-            backgroundColor: "rgba(255, 255, 255, 0.9)",
-            backdropFilter: "blur(10px)",
+        sx={{
+          display: { xs: "block", md: "none" },
+          "& .MuiDrawer-paper": {
+            boxSizing: "border-box",
+            width: 280,
           },
         }}
       >
         {drawer}
       </Drawer>
-      <Toolbar />
-    </motion.div>
+    </Motion.div>
   );
 };
 

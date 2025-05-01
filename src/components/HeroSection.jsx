@@ -8,54 +8,71 @@ import ShieldIcon from "@mui/icons-material/Shield";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import BoltIcon from "@mui/icons-material/Bolt";
 import { styled } from "@mui/material/styles";
+import ProBanking from "../assets/hero-image-1.png";
+import ProBanking2 from "../assets/heroimage-2.png";
+import ProBanking3 from "../assets/heroimage-3.png";
 
 // Overlay for better text visibility
-const HeroOverlay = styled("div")({
+const HeroOverlay = styled("div")(({ theme }) => ({
   position: "absolute",
   top: 0,
   left: 0,
   width: "100%",
   height: "100%",
-  background:
-    "linear-gradient(120deg,rgba(0,63,136,0.7) 0%,rgba(0,87,202,0.4) 100%)",
+  background: theme.palette.mode === 'dark'
+    ? "linear-gradient(120deg,rgba(13, 17, 23, 0.9) 0%,rgba(19, 47, 76, 0.8) 100%)"
+    : "linear-gradient(120deg,rgba(0,63,136,0.7) 0%,rgba(0,87,202,0.4) 100%)",
   zIndex: 1,
-});
+}));
 
 // Glassy card for text
 const GlassCard = styled(Box)(({ theme }) => ({
-  background: "rgba(255,255,255,0.15)",
+  background: theme.palette.mode === 'dark'
+    ? "rgba(13, 17, 23, 0.75)"
+    : "rgba(255,255,255,0.15)",
   borderRadius: 24,
-  boxShadow: "0 8px 32px 0 rgba(31,38,135,0.15)",
+  boxShadow: theme.palette.mode === 'dark'
+    ? "0 8px 32px 0 rgba(0, 0, 0, 0.37)"
+    : "0 8px 32px 0 rgba(31,38,135,0.15)",
   backdropFilter: "blur(10px)",
   WebkitBackdropFilter: "blur(10px)",
-  border: "1px solid rgba(255,255,255,0.18)",
+  border: theme.palette.mode === 'dark'
+    ? "1px solid rgba(255,255,255,0.1)"
+    : "1px solid rgba(255,255,255,0.18)",
   padding: theme.spacing(5, 4),
   zIndex: 2,
   position: "relative",
 }));
 
-const HighlightBox = styled(Box)({
+const HighlightBox = styled(Box)(({ theme }) => ({
   display: "flex",
   alignItems: "center",
-  background: "rgba(255,255,255,0.18)",
+  background: theme.palette.mode === 'dark'
+    ? "rgba(255,255,255,0.1)"
+    : "rgba(255,255,255,0.18)",
   borderRadius: 16,
   padding: "8px 18px",
   marginRight: 12,
   marginBottom: 12,
-  color: "#fff",
+  color: theme.palette.mode === 'dark'
+    ? theme.palette.primary.light
+    : "#fff",
   fontWeight: 600,
-  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+  boxShadow: theme.palette.mode === 'dark'
+    ? "0 2px 8px rgba(0,0,0,0.2)"
+    : "0 2px 8px rgba(0,0,0,0.08)",
   fontSize: "1.05rem",
   transition: "background 0.2s",
   "&:hover": {
-    background: "rgba(255,255,255,0.28)",
+    background: theme.palette.mode === 'dark'
+      ? "rgba(255,255,255,0.15)"
+      : "rgba(255,255,255,0.28)",
   },
-});
+}));
 
 const heroContent = [
   {
-    image:
-      "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=80", // Modern online banking
+    image: ProBanking, // Modern online banking
     title: "Banking for Professionals",
     subtitle: "Empower Your Ambitions with Trusted Finance",
     description:
@@ -77,8 +94,7 @@ const heroContent = [
     ],
   },
   {
-    image:
-      "https://images.unsplash.com/photo-1518544801346-3df1c7b2b2e2?auto=format&fit=crop&w=1200&q=80", // Mobile banking app in hand
+    image: ProBanking2, // Mobile banking app in hand
     title: "Seamless Digital Experience",
     subtitle: "Apply, Track, and Manage Online",
     description:
@@ -93,12 +109,11 @@ const heroContent = [
     ],
   },
   {
-    image:
-      "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80", // Secure digital transaction, card and padlock
+    image: ProBanking3, // Secure digital transaction, card and padlock
     title: "Transparent. Reliable. Modern.",
     subtitle: "Banking You Can Trust",
     description:
-      "No hidden fees. No surprises. Just clear terms, fair rates, and banking designed for tomorrow’s professionals.",
+      "No hidden fees. No surprises. Just clear terms, fair rates, and banking designed for tomorrow's professionals.",
     highlights: [
       { icon: <ShieldIcon color="secondary" />, label: "Transparent Terms" },
       {
@@ -277,7 +292,6 @@ export default function HeroSection() {
               </motion.div>
             </GlassCard>
           </Grid>
-          
         </Grid>
       </Container>
     </Box>

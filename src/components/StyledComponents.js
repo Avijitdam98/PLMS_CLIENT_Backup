@@ -16,7 +16,7 @@ export const GlassCard = styled(Card)(({ theme }) => ({
   },
 }));
 
-// Gradient button for CTAs (call-to-action) - Sundaram Finance style
+// Gradient button for CTAs (call-to-action) - FinTech Finance style
 export const GradientButton = styled(Button)(({ theme }) => ({
   background: "linear-gradient(90deg, #005bea 0%, #ffc300 100%)",
   border: 0,
@@ -35,7 +35,7 @@ export const GradientButton = styled(Button)(({ theme }) => ({
   },
 }));
 
-// Hero section background with Sundaram blue & gold overlay and a subtle image
+// Hero section background with FinTech blue & gold overlay and a subtle image
 export const HeroBg = styled(Box)({
   position: "absolute",
   width: "100vw",
@@ -74,7 +74,7 @@ export const TestimonialCard = styled(Paper)(({ theme }) => ({
   color: "#003366",
 }));
 
-// Footer background with Sundaram blue and gold
+// Footer background with FinTech blue and gold
 export const FooterBg = styled(Box)({
   position: "absolute",
   width: "100vw",

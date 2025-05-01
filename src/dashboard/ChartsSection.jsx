@@ -1,31 +1,31 @@
-import React from "react";
-import {
-  Paper,
-  Typography,
-  Grid,
-  Box,
-  useTheme,
-  alpha,
-  CircularProgress,
-  Stack,
-} from "@mui/material";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import BarChartIcon from "@mui/icons-material/BarChart";
+import CancelIcon from "@mui/icons-material/Cancel";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import PendingIcon from "@mui/icons-material/Pending";
-import CancelIcon from "@mui/icons-material/Cancel";
-import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import TimelineIcon from "@mui/icons-material/Timeline";
-import BarChartIcon from "@mui/icons-material/BarChart";
 import {
-  ResponsiveContainer,
-  AreaChart,
+  alpha,
+  Box,
+  CircularProgress,
+  Grid,
+  Paper,
+  Stack,
+  Typography,
+  useTheme,
+} from "@mui/material";
+import React from "react";
+import {
   Area,
+  AreaChart,
+  Bar,
   CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
   Legend,
   BarChart as ReBarChart,
-  Bar,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from "recharts";
 
 // Status Card Styles
@@ -55,20 +55,40 @@ const ChartsSection = ({
   // Status counts
   const statusData = getStatusData();
   const total = statusData.reduce((sum, s) => sum + s.value, 0);
-  const approvedPendingDisbursal = statusData.find((s) => s.name === "Approved")?.value || 0;
+  const approvedPendingDisbursal =
+    statusData.find((s) => s.name === "Approved")?.value || 0;
   const disbursed = statusData.find((s) => s.name === "Disbursed")?.value || 0;
   const totalApproved = approvedPendingDisbursal + disbursed;
   const pending = statusData.find((s) => s.name === "Pending")?.value || 0;
   const rejected = statusData.find((s) => s.name === "Rejected")?.value || 0;
   const approvalRate = total ? Math.round((totalApproved / total) * 100) : 0;
 
-  // Admin-specific: Top 3 Loan Purposes
+  // Calculate total loan amount
+  const totalLoanAmount = applications.reduce(
+    (sum, app) => sum + Number(app.loanAmount || 0),
+    0
+  );
+
+  // Calculate average loan amount
+  const averageLoanAmount = total ? Math.round(totalLoanAmount / total) : 0;
+
+  // Admin-specific: Top 3 Loan Purposes with percentages
   const topPurposes = getPurposeData()
     .sort((a, b) => b.amount - a.amount)
-    .slice(0, 3);
+    .slice(0, 3)
+    .map((purpose) => ({
+      ...purpose,
+      percentage: Math.round((purpose.amount / totalLoanAmount) * 100),
+    }));
 
-  // User-specific: Personalized greeting
+  // User-specific: Personalized greeting and loan summary
   const greeting = userName ? `Welcome, ${userName}!` : "Welcome!";
+  const userLoanSummary = {
+    totalAmount: totalLoanAmount,
+    averageAmount: averageLoanAmount,
+    approvalRate,
+    totalApplications: total,
+  };
 
   return (
     <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -78,7 +98,9 @@ const ChartsSection = ({
           {/* Status Cards */}
           <Grid item xs={12} md={3}>
             <Stack spacing={2}>
-              <Paper sx={statCardSx(chartTheme.palette.success.main, chartTheme)}>
+              <Paper
+                sx={statCardSx(chartTheme.palette.success.main, chartTheme)}
+              >
                 <CheckCircleIcon color="success" fontSize="large" />
                 <Box>
                   <Typography variant="subtitle2" fontWeight={600}>
@@ -92,18 +114,25 @@ const ChartsSection = ({
                   </Typography>
                 </Box>
               </Paper>
-              <Paper sx={statCardSx(chartTheme.palette.primary.main, chartTheme)}>
+              <Paper
+                sx={statCardSx(chartTheme.palette.primary.main, chartTheme)}
+              >
                 <AttachMoneyIcon color="primary" fontSize="large" />
                 <Box>
                   <Typography variant="subtitle2" fontWeight={600}>
-                    Disbursed
+                    Total Loan Amount
                   </Typography>
                   <Typography variant="h5" fontWeight={700}>
-                    {disbursed}
+                    ₹{totalLoanAmount.toLocaleString()}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Average: ₹{averageLoanAmount.toLocaleString()}
                   </Typography>
                 </Box>
               </Paper>
-              <Paper sx={statCardSx(chartTheme.palette.warning.main, chartTheme)}>
+              <Paper
+                sx={statCardSx(chartTheme.palette.warning.main, chartTheme)}
+              >
                 <PendingIcon color="warning" fontSize="large" />
                 <Box>
                   <Typography variant="subtitle2" fontWeight={600}>
@@ -111,6 +140,9 @@ const ChartsSection = ({
                   </Typography>
                   <Typography variant="h5" fontWeight={700}>
                     {pending}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {Math.round((pending / total) * 100)}% of total
                   </Typography>
                 </Box>
               </Paper>
@@ -123,29 +155,42 @@ const ChartsSection = ({
                   <Typography variant="h5" fontWeight={700}>
                     {rejected}
                   </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {Math.round((rejected / total) * 100)}% of total
+                  </Typography>
                 </Box>
               </Paper>
             </Stack>
           </Grid>
           {/* Monthly Trends Area Chart */}
           <Grid item xs={12} md={5}>
-            <Paper sx={{
-              p: 3,
-              borderRadius: 4,
-              height: "100%",
-              background: `linear-gradient(135deg, ${alpha(chartTheme.palette.primary.light, 0.08)}, ${alpha(chartTheme.palette.background.paper, 0.95)})`,
-              boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.10)",
-              transition: "box-shadow 0.3s, transform 0.3s",
-              "&:hover": {
-                boxShadow: "0 12px 40px 0 rgba(31, 38, 135, 0.18)",
-                transform: "translateY(-4px) scale(1.01)",
-              },
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-            }}>
+            <Paper
+              sx={{
+                p: 3,
+                borderRadius: 4,
+                height: "100%",
+                background: theme.palette.mode === 'dark'
+                  ? `linear-gradient(135deg, ${alpha(theme.palette.primary.dark, 0.15)}, ${alpha(theme.palette.background.paper, 0.95)})`
+                  : `linear-gradient(135deg, ${alpha(theme.palette.primary.light, 0.08)}, ${alpha(theme.palette.background.paper, 0.95)})`,
+                boxShadow: theme.palette.mode === 'dark'
+                  ? '0 8px 32px 0 rgba(0, 0, 0, 0.3)'
+                  : '0 8px 32px 0 rgba(31, 38, 135, 0.10)',
+                transition: "box-shadow 0.3s, transform 0.3s, background 0.3s",
+                "&:hover": {
+                  boxShadow: theme.palette.mode === 'dark'
+                    ? '0 12px 40px 0 rgba(0, 0, 0, 0.4)'
+                    : '0 12px 40px 0 rgba(31, 38, 135, 0.18)',
+                  transform: "translateY(-4px) scale(1.01)",
+                },
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+              }}
+            >
               <Box display="flex" alignItems="center" mb={2}>
-                <TimelineIcon sx={{ color: chartTheme.palette.success.main, mr: 1 }} />
+                <TimelineIcon
+                  sx={{ color: chartTheme.palette.success.main, mr: 1 }}
+                />
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
                   Applications & Approvals Over Time
                 </Typography>
@@ -180,12 +225,34 @@ const ChartsSection = ({
                   />
                   <defs>
                     <linearGradient id="colorApps" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={chartTheme.palette.primary.light} stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor={chartTheme.palette.primary.light} stopOpacity={0.1}/>
+                      <stop
+                        offset="5%"
+                        stopColor={chartTheme.palette.primary.light}
+                        stopOpacity={0.8}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor={chartTheme.palette.primary.light}
+                        stopOpacity={0.1}
+                      />
                     </linearGradient>
-                    <linearGradient id="colorApproved" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={chartTheme.palette.success.light} stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor={chartTheme.palette.success.light} stopOpacity={0.1}/>
+                    <linearGradient
+                      id="colorApproved"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="5%"
+                        stopColor={chartTheme.palette.success.light}
+                        stopOpacity={0.8}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor={chartTheme.palette.success.light}
+                        stopOpacity={0.1}
+                      />
                     </linearGradient>
                   </defs>
                 </AreaChart>
@@ -194,23 +261,33 @@ const ChartsSection = ({
           </Grid>
           {/* Top Purposes Bar Chart */}
           <Grid item xs={12} md={4}>
-            <Paper sx={{
-              p: 3,
-              borderRadius: 4,
-              height: "100%",
-              background: `linear-gradient(135deg, ${alpha(chartTheme.palette.primary.light, 0.08)}, ${alpha(chartTheme.palette.background.paper, 0.95)})`,
-              boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.10)",
-              transition: "box-shadow 0.3s, transform 0.3s",
-              "&:hover": {
-                boxShadow: "0 12px 40px 0 rgba(31, 38, 135, 0.18)",
-                transform: "translateY(-4px) scale(1.01)",
-              },
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-            }}>
+            <Paper
+              sx={{
+                p: 3,
+                borderRadius: 4,
+                height: "100%",
+                background: theme.palette.mode === 'dark'
+                  ? `linear-gradient(135deg, ${alpha(theme.palette.primary.dark, 0.15)}, ${alpha(theme.palette.background.paper, 0.95)})`
+                  : `linear-gradient(135deg, ${alpha(theme.palette.primary.light, 0.08)}, ${alpha(theme.palette.background.paper, 0.95)})`,
+                boxShadow: theme.palette.mode === 'dark'
+                  ? '0 8px 32px 0 rgba(0, 0, 0, 0.3)'
+                  : '0 8px 32px 0 rgba(31, 38, 135, 0.10)',
+                transition: "box-shadow 0.3s, transform 0.3s, background 0.3s",
+                "&:hover": {
+                  boxShadow: theme.palette.mode === 'dark'
+                    ? '0 12px 40px 0 rgba(0, 0, 0, 0.4)'
+                    : '0 12px 40px 0 rgba(31, 38, 135, 0.18)',
+                  transform: "translateY(-4px) scale(1.01)",
+                },
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+              }}
+            >
               <Box display="flex" alignItems="center" mb={2}>
-                <BarChartIcon sx={{ color: chartTheme.palette.info.main, mr: 1 }} />
+                <BarChartIcon
+                  sx={{ color: chartTheme.palette.info.main, mr: 1 }}
+                />
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
                   Top Loan Purposes
                 </Typography>
@@ -223,7 +300,12 @@ const ChartsSection = ({
                   />
                   <XAxis dataKey="purpose" />
                   <YAxis />
-                  <Tooltip />
+                  <Tooltip
+                    formatter={(value, name, props) => [
+                      `₹${value.toLocaleString()}`,
+                      `${props.payload.percentage}% of total`,
+                    ]}
+                  />
                   <Legend />
                   <Bar
                     dataKey="amount"
@@ -232,9 +314,23 @@ const ChartsSection = ({
                     radius={[8, 8, 0, 0]}
                   />
                   <defs>
-                    <linearGradient id="colorPurpose" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={chartTheme.palette.info.main} stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor={chartTheme.palette.info.light} stopOpacity={0.1}/>
+                    <linearGradient
+                      id="colorPurpose"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="5%"
+                        stopColor={chartTheme.palette.info.main}
+                        stopOpacity={0.8}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor={chartTheme.palette.info.light}
+                        stopOpacity={0.1}
+                      />
                     </linearGradient>
                   </defs>
                 </ReBarChart>
@@ -243,19 +339,21 @@ const ChartsSection = ({
           </Grid>
         </>
       ) : (
-      /* --- USER DASHBOARD --- */
+        /* --- USER DASHBOARD --- */
         <>
           {/* User greeting and approval rate */}
           <Grid item xs={12} md={4}>
             <Stack spacing={2}>
-              <Paper sx={{
-                p: 2,
-                borderRadius: 3,
-                background: alpha(chartTheme.palette.primary.main, 0.07),
-                color: chartTheme.palette.primary.main,
-                boxShadow: "0 2px 8px 0 rgba(31, 38, 135, 0.10)",
-                textAlign: "center",
-              }}>
+              <Paper
+                sx={{
+                  p: 2,
+                  borderRadius: 3,
+                  background: alpha(chartTheme.palette.primary.main, 0.07),
+                  color: chartTheme.palette.primary.main,
+                  boxShadow: "0 2px 8px 0 rgba(31, 38, 135, 0.10)",
+                  textAlign: "center",
+                }}
+              >
                 <Typography variant="subtitle1" fontWeight={700} mb={1}>
                   {greeting}
                 </Typography>
@@ -292,7 +390,9 @@ const ChartsSection = ({
                   {totalApproved} approved out of {total} applications
                 </Typography>
               </Paper>
-              <Paper sx={statCardSx(chartTheme.palette.success.main, chartTheme)}>
+              <Paper
+                sx={statCardSx(chartTheme.palette.success.main, chartTheme)}
+              >
                 <CheckCircleIcon color="success" fontSize="large" />
                 <Box>
                   <Typography variant="subtitle2" fontWeight={600}>
@@ -301,16 +401,24 @@ const ChartsSection = ({
                   <Typography variant="h5" fontWeight={700}>
                     {totalApproved}
                   </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {approvedPendingDisbursal} pending disbursal
+                  </Typography>
                 </Box>
               </Paper>
-              <Paper sx={statCardSx(chartTheme.palette.primary.main, chartTheme)}>
+              <Paper
+                sx={statCardSx(chartTheme.palette.primary.main, chartTheme)}
+              >
                 <AttachMoneyIcon color="primary" fontSize="large" />
                 <Box>
                   <Typography variant="subtitle2" fontWeight={600}>
-                    Disbursed
+                    Total Loan Amount
                   </Typography>
                   <Typography variant="h5" fontWeight={700}>
-                    {disbursed}
+                    ₹{totalLoanAmount.toLocaleString()}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Average: ₹{averageLoanAmount.toLocaleString()}
                   </Typography>
                 </Box>
               </Paper>
@@ -318,23 +426,33 @@ const ChartsSection = ({
           </Grid>
           {/* User's Monthly Trends Area Chart */}
           <Grid item xs={12} md={4}>
-            <Paper sx={{
-              p: 3,
-              borderRadius: 4,
-              height: "100%",
-              background: `linear-gradient(135deg, ${alpha(chartTheme.palette.primary.light, 0.08)}, ${alpha(chartTheme.palette.background.paper, 0.95)})`,
-              boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.10)",
-              transition: "box-shadow 0.3s, transform 0.3s",
-              "&:hover": {
-                boxShadow: "0 12px 40px 0 rgba(31, 38, 135, 0.18)",
-                transform: "translateY(-4px) scale(1.01)",
-              },
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-            }}>
+            <Paper
+              sx={{
+                p: 3,
+                borderRadius: 4,
+                height: "100%",
+                background: theme.palette.mode === 'dark'
+                  ? `linear-gradient(135deg, ${alpha(theme.palette.primary.dark, 0.15)}, ${alpha(theme.palette.background.paper, 0.95)})`
+                  : `linear-gradient(135deg, ${alpha(theme.palette.primary.light, 0.08)}, ${alpha(theme.palette.background.paper, 0.95)})`,
+                boxShadow: theme.palette.mode === 'dark'
+                  ? '0 8px 32px 0 rgba(0, 0, 0, 0.3)'
+                  : '0 8px 32px 0 rgba(31, 38, 135, 0.10)',
+                transition: "box-shadow 0.3s, transform 0.3s, background 0.3s",
+                "&:hover": {
+                  boxShadow: theme.palette.mode === 'dark'
+                    ? '0 12px 40px 0 rgba(0, 0, 0, 0.4)'
+                    : '0 12px 40px 0 rgba(31, 38, 135, 0.18)',
+                  transform: "translateY(-4px) scale(1.01)",
+                },
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+              }}
+            >
               <Box display="flex" alignItems="center" mb={2}>
-                <TimelineIcon sx={{ color: chartTheme.palette.success.main, mr: 1 }} />
+                <TimelineIcon
+                  sx={{ color: chartTheme.palette.success.main, mr: 1 }}
+                />
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
                   My Application Trends
                 </Typography>
@@ -369,12 +487,34 @@ const ChartsSection = ({
                   />
                   <defs>
                     <linearGradient id="colorApps" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={chartTheme.palette.primary.light} stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor={chartTheme.palette.primary.light} stopOpacity={0.1}/>
+                      <stop
+                        offset="5%"
+                        stopColor={chartTheme.palette.primary.light}
+                        stopOpacity={0.8}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor={chartTheme.palette.primary.light}
+                        stopOpacity={0.1}
+                      />
                     </linearGradient>
-                    <linearGradient id="colorApproved" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={chartTheme.palette.success.light} stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor={chartTheme.palette.success.light} stopOpacity={0.1}/>
+                    <linearGradient
+                      id="colorApproved"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="5%"
+                        stopColor={chartTheme.palette.success.light}
+                        stopOpacity={0.8}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor={chartTheme.palette.success.light}
+                        stopOpacity={0.1}
+                      />
                     </linearGradient>
                   </defs>
                 </AreaChart>
@@ -383,23 +523,33 @@ const ChartsSection = ({
           </Grid>
           {/* User's Loan Purpose Bar Chart */}
           <Grid item xs={12} md={4}>
-            <Paper sx={{
-              p: 3,
-              borderRadius: 4,
-              height: "100%",
-              background: `linear-gradient(135deg, ${alpha(chartTheme.palette.primary.light, 0.08)}, ${alpha(chartTheme.palette.background.paper, 0.95)})`,
-              boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.10)",
-              transition: "box-shadow 0.3s, transform 0.3s",
-              "&:hover": {
-                boxShadow: "0 12px 40px 0 rgba(31, 38, 135, 0.18)",
-                transform: "translateY(-4px) scale(1.01)",
-              },
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-            }}>
+            <Paper
+              sx={{
+                p: 3,
+                borderRadius: 4,
+                height: "100%",
+                background: theme.palette.mode === 'dark'
+                  ? `linear-gradient(135deg, ${alpha(theme.palette.primary.dark, 0.15)}, ${alpha(theme.palette.background.paper, 0.95)})`
+                  : `linear-gradient(135deg, ${alpha(theme.palette.primary.light, 0.08)}, ${alpha(theme.palette.background.paper, 0.95)})`,
+                boxShadow: theme.palette.mode === 'dark'
+                  ? '0 8px 32px 0 rgba(0, 0, 0, 0.3)'
+                  : '0 8px 32px 0 rgba(31, 38, 135, 0.10)',
+                transition: "box-shadow 0.3s, transform 0.3s, background 0.3s",
+                "&:hover": {
+                  boxShadow: theme.palette.mode === 'dark'
+                    ? '0 12px 40px 0 rgba(0, 0, 0, 0.4)'
+                    : '0 12px 40px 0 rgba(31, 38, 135, 0.18)',
+                  transform: "translateY(-4px) scale(1.01)",
+                },
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+              }}
+            >
               <Box display="flex" alignItems="center" mb={2}>
-                <BarChartIcon sx={{ color: chartTheme.palette.info.main, mr: 1 }} />
+                <BarChartIcon
+                  sx={{ color: chartTheme.palette.info.main, mr: 1 }}
+                />
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
                   My Loan Amount by Purpose
                 </Typography>
@@ -412,7 +562,9 @@ const ChartsSection = ({
                   />
                   <XAxis dataKey="purpose" />
                   <YAxis />
-                  <Tooltip />
+                  <Tooltip
+                    formatter={(value) => `₹${value.toLocaleString()}`}
+                  />
                   <Legend />
                   <Bar
                     dataKey="amount"
@@ -421,9 +573,23 @@ const ChartsSection = ({
                     radius={[8, 8, 0, 0]}
                   />
                   <defs>
-                    <linearGradient id="colorPurpose" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={chartTheme.palette.info.main} stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor={chartTheme.palette.info.light} stopOpacity={0.1}/>
+                    <linearGradient
+                      id="colorPurpose"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="5%"
+                        stopColor={chartTheme.palette.info.main}
+                        stopOpacity={0.8}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor={chartTheme.palette.info.light}
+                        stopOpacity={0.1}
+                      />
                     </linearGradient>
                   </defs>
                 </ReBarChart>

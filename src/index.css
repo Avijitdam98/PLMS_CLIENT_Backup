@@ -13,13 +13,8 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+* {
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 body {
@@ -28,6 +23,7 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  transition: background-color 0.3s ease;
 }
 
 h1 {
@@ -65,4 +61,14 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+  transition: color 0.3s ease;
+}
+a:hover {
+  color: #535bf2;
 }

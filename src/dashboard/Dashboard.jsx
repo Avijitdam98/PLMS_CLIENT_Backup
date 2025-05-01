@@ -10,38 +10,34 @@ import {
   Avatar,
   Box,
   Button,
-  Card,
-  CardContent,
-  Chip,
-  CircularProgress,
   Container,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Grid,
+  Fade,
   IconButton,
   LinearProgress,
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  MenuItem,
   Paper,
   Stack,
+  TextField,
   Typography,
+  InputAdornment,
+  Chip,
+  Divider,
+  Table,
   useTheme,
 } from "@mui/material";
+import AccountCircle from "@mui/icons-material/AccountCircle";
+import SearchIcon from "@mui/icons-material/Search";
 import axios from "axios";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import UserDocuments from "../components/UserDocuments";
-import ChartsSection from "../dashboard/ChartsSection";
-import ApplicationsList from "../dashboard/ApplicationsList";
-import PdfDialog from "../dashboard/PdfDialog";
-import EmiDialog from "../dashboard/EmiDialog";
 import NotificationBell from "../components/NotificationBell";
+import UserDocuments from "../components/UserDocuments";
+import UserRepaymentHistory from "../components/UserRepaymentHistory";
+import ApplicationsList from "../dashboard/ApplicationsList";
+import ChartsSection from "../dashboard/ChartsSection";
+import EmiDialog from "../dashboard/EmiDialog";
+import PdfDialog from "../dashboard/PdfDialog";
 
 function Dashboard() {
   const [applications, setApplications] = useState([]);
@@ -59,10 +55,12 @@ function Dashboard() {
   const [emiDialogOpen, setEmiDialogOpen] = useState(false);
   const [emiLoading, setEmiLoading] = useState(false);
 
+  // Admin: userId for repayment history
+  const [selectedUserId, setSelectedUserId] = useState("");
+
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const theme = useTheme();
 
-  // Status filter options
   const statusFilters = [
     {
       value: "ALL",
@@ -91,7 +89,6 @@ function Dashboard() {
     },
   ];
 
-  // Prepare data for charts
   const getStatusData = () => {
     const statusCounts = applications.reduce(
       (acc, app) => {
@@ -124,7 +121,6 @@ function Dashboard() {
     ].filter((item) => item.value > 0);
   };
 
-  // Monthly data (dynamic from applications)
   const getMonthlyData = () => {
     const monthly = {};
     applications.forEach((app) => {
@@ -144,7 +140,6 @@ function Dashboard() {
     );
   };
 
-  // Loan purpose bar chart
   const getPurposeData = () => {
     const purposeSums = applications.reduce((acc, app) => {
       acc[app.purpose] = (acc[app.purpose] || 0) + Number(app.loanAmount);
@@ -156,7 +151,6 @@ function Dashboard() {
     }));
   };
 
-  // Filter applications based on search and status filter
   const filteredApplications = applications.filter((app) => {
     const matchesSearch =
       app.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -166,7 +160,8 @@ function Dashboard() {
   });
 
   useEffect(() => {
-    if (!user.id || !user.role) {
+    // Accept id: 0 as valid (only null or undefined is invalid)
+    if (user.id == null || !user.role) {
       setError("User not logged in or invalid session");
       setLoading(false);
       toast.error("Please log in to view your dashboard");
@@ -176,7 +171,6 @@ function Dashboard() {
     // eslint-disable-next-line
   }, []);
 
-  // Fetch applications
   const fetchApplications = async () => {
     setLoading(true);
     try {
@@ -196,7 +190,6 @@ function Dashboard() {
     }
   };
 
-  // Fetch documents for a specific application
   const fetchDocuments = async (app) => {
     const applicationId = app.applicationId;
     if (!applicationId) {
@@ -211,6 +204,7 @@ function Dashboard() {
       const response = await axios.get(
         `http://localhost:8732/api/loans/documents/application/${applicationId}`
       );
+      console.log("Fetched documents:", response.data); // Debug log
       setSelectedDocs(response.data || []);
     } catch (e) {
       setSelectedDocs([]);
@@ -220,13 +214,45 @@ function Dashboard() {
     }
   };
 
-  // Status update handler (admin)
-  const handleStatusUpdate = async (applicationId, status) => {
+  // --- Admin Document Verification Handler ---
+  const handleVerify = async (documentId) => {
+    if (!documentId) {
+      toast.error("Invalid document ID");
+      return;
+    }
+
+    try {
+      console.log("Verifying document with ID:", documentId);
+      await axios.put(
+        `http://localhost:8732/api/documents/verify/${documentId}`
+      );
+      toast.success("Document verified successfully!");
+
+      // Refresh the document list after verification
+      if (selectedDocs.length > 0 && selectedDocs[0].applicationId) {
+        fetchDocuments({ applicationId: selectedDocs[0].applicationId });
+      } else {
+        // Alternatively, update the local state to avoid a refetch
+        setSelectedDocs((prevDocs) =>
+          prevDocs.map((doc) =>
+            doc.id === documentId || doc.documentId === documentId
+              ? { ...doc, isVerified: true }
+              : doc
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Verification error:", error);
+      toast.error(error.response?.data?.message || "Failed to verify document");
+    }
+  };
+
+  const handleStatusUpdate = async (applicationId, status, comment) => {
     try {
       await axios.put(
         `http://localhost:8732/api/loans/update-status/${applicationId}`,
         null,
-        { params: { status: status.toUpperCase() } }
+        { params: { status: status.toUpperCase(), comment } }
       );
       toast.success(`Application ${status.toLowerCase()}!`);
       fetchApplications();
@@ -235,31 +261,26 @@ function Dashboard() {
     }
   };
 
-  // Disburse loan (admin)
   const handleDisburse = async (applicationId) => {
     try {
       const application = applications.find(
         (app) => app.applicationId === applicationId
       );
 
-      // Check if the application is approved before disbursement
       if (application.status !== "APPROVED") {
         toast.error("Loan application must be approved before disbursement");
         return;
       }
 
-      // Ensure loanAmount is a valid number
       const amount = Number(application.loanAmount);
-
-      // Using axios params option to properly encode the query parameters
       const url = `http://localhost:8732/api/disbursements/disburse/${applicationId}`;
 
       await axios({
-        method: 'post',
+        method: "post",
         url: url,
         params: {
-          amount: amount
-        }
+          amount: amount,
+        },
       });
 
       toast.success("Loan disbursed!");
@@ -298,7 +319,6 @@ function Dashboard() {
     }
   };
 
-  // Format date without date-fns
   const formattedDate = new Date().toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
@@ -387,92 +407,184 @@ function Dashboard() {
   return (
     <Box
       sx={{
-        minHeight: "100vh",
-        background:
-          theme.palette.mode === "light"
-            ? "linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)"
-            : theme.palette.background.default,
-        pb: 8,
+        minHeight: '100vh',
+        backgroundColor: theme.palette.mode === 'dark'
+          ? theme.palette.background.default
+          : '#f4f7fb',
+        py: 4,
       }}
     >
       <ToastContainer />
-      <Container maxWidth="xl" sx={{ mt: 4 }}>
-        {/* --- NOTIFICATION BELL --- */}
-        <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
-          <NotificationBell userId={user.id} />
-        </Box>
+      <Container maxWidth="xl">
+        <Paper
+          elevation={0}
+          sx={{
+            p: 3,
+            mb: 4,
+            borderRadius: 4,
+            background: theme.palette.mode === 'dark'
+              ? 'rgba(19, 47, 76, 0.4)'
+              : 'rgba(255, 255, 255, 0.8)',
+            backdropFilter: 'blur(10px)',
+            border: theme.palette.mode === 'dark'
+              ? '1px solid rgba(255, 255, 255, 0.1)'
+              : '1px solid rgba(255, 255, 255, 0.2)',
+          }}
+        >
+          {/* --- NOTIFICATION BELL --- */}
+          <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+            <NotificationBell userId={user.id} />
+          </Box>
 
-        <Box sx={{ mb: 4 }}>
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <Typography
-              variant="h4"
-              sx={{
-                fontWeight: 700,
-                mb: 1,
-                background: `linear-gradient(45deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                display: "inline-block",
-              }}
+          <Box sx={{ mb: 4 }}>
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
             >
-              {user.role === "ADMIN" ? "Admin Dashboard" : "My Loan Dashboard"}
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              {formattedDate}
-            </Typography>
-          </motion.div>
-        </Box>
+              <Typography
+                variant="h4"
+                sx={{
+                  fontWeight: 700,
+                  mb: 1,
+                  background: `linear-gradient(45deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  display: "inline-block",
+                }}
+              >
+                {user.role === "ADMIN" ? "Admin Dashboard" : "My Loan Dashboard"}
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
+                {formattedDate}
+              </Typography>
+            </motion.div>
+          </Box>
 
-        {/* --- CHARTS SECTION --- */}
-        <ChartsSection
-          applications={applications}
-          theme={theme}
-          getStatusData={getStatusData}
-          getMonthlyData={getMonthlyData}
-          getPurposeData={getPurposeData}
-        />
+          {user.role === "ADMIN" && (
+            <Fade in>
+              <Paper
+                elevation={4}
+                sx={{
+                  my: 4,
+                  p: { xs: 2, md: 3 },
+                  borderRadius: 4,
+                  background: "linear-gradient(135deg, #f8fafc 0%, #e0e7ef 100%)",
+                  boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.12)",
+                  maxWidth: 600,
+                  mx: "auto",
+                }}
+              >
+                <Stack spacing={2}>
+                  <Typography
+                    variant="h5"
+                    sx={{
+                      fontWeight: 700,
+                      color: "primary.main",
+                      letterSpacing: 1,
+                      textAlign: "center",
+                    }}
+                  >
+                    User Repayment History Lookup
+                  </Typography>
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    sx={{ textAlign: "center", mb: 1 }}
+                  >
+                    Enter a User ID to view their full repayment history
+                  </Typography>
+                  <Box display="flex" justifyContent="center" alignItems="center">
+                    <TextField
+                      type="number"
+                      value={selectedUserId}
+                      onChange={(e) => setSelectedUserId(e.target.value)}
+                      placeholder="User ID"
+                      variant="outlined"
+                      size="medium"
+                      sx={{
+                        minWidth: 220,
+                        borderRadius: 3,
+                        background: "#fff",
+                        boxShadow: "0 2px 8px 0 rgba(31, 38, 135, 0.08)",
+                        "& .MuiOutlinedInput-root": {
+                          borderRadius: 3,
+                        },
+                      }}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <AccountCircle color="primary" />
+                          </InputAdornment>
+                        ),
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton disabled>
+                              <SearchIcon />
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                        inputProps: { min: 1 },
+                      }}
+                    />
+                  </Box>
+                  <Box>
+                    <UserRepaymentHistory userId={selectedUserId} />
+                  </Box>
+                </Stack>
+              </Paper>
+            </Fade>
+          )}
 
-        {/* --- USER DOCUMENT UPLOAD & VIEW SECTION (as a component) --- */}
-        <UserDocuments userId={user.id} userRole={user.role} />
+          {/* --- CHARTS SECTION --- */}
+          <ChartsSection
+            applications={applications}
+            theme={theme}
+            getStatusData={getStatusData}
+            getMonthlyData={getMonthlyData}
+            getPurposeData={getPurposeData}
+          />
 
-        {/* --- APPLICATIONS SECTION --- */}
-        <ApplicationsList
-          applications={filteredApplications}
-          user={user}
-          onFetchDocuments={fetchDocuments}
-          onFetchEMIs={fetchEMIs}
-          onStatusUpdate={handleStatusUpdate}
-          onDisburse={handleDisburse}
-          statusFilter={statusFilter}
-          setStatusFilter={setStatusFilter}
-          filterAnchorEl={filterAnchorEl}
-          setFilterAnchorEl={setFilterAnchorEl}
-          statusFilters={statusFilters}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          theme={theme}
-        />
+          {/* --- USER DOCUMENT UPLOAD & VIEW SECTION (as a component) --- */}
+          <UserDocuments userId={user.id} userRole={user.role} />
 
-        {/* PDF Dialog for Application */}
-        <PdfDialog
-          open={pdfDialogOpen}
-          onClose={() => setPdfDialogOpen(false)}
-          docsLoading={docsLoading}
-          selectedDocs={selectedDocs}
-        />
+          {/* --- APPLICATIONS SECTION --- */}
+          <ApplicationsList
+            applications={filteredApplications}
+            user={user}
+            onFetchDocuments={fetchDocuments}
+            onFetchEMIs={fetchEMIs}
+            onStatusUpdate={handleStatusUpdate}
+            onDisburse={handleDisburse}
+            statusFilter={statusFilter}
+            setStatusFilter={setStatusFilter}
+            filterAnchorEl={filterAnchorEl}
+            setFilterAnchorEl={setFilterAnchorEl}
+            statusFilters={statusFilters}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            theme={theme}
+          />
 
-        {/* --- EMI Dialog for Users --- */}
-        <EmiDialog
-          open={emiDialogOpen}
-          onClose={() => setEmiDialogOpen(false)}
-          emiLoading={emiLoading}
-          selectedLoanEMIs={selectedLoanEMIs}
-          onPayEmi={handlePayEmi}
-        />
+          {/* PDF Dialog for Application */}
+          <PdfDialog
+            open={pdfDialogOpen}
+            onClose={() => setPdfDialogOpen(false)}
+            docsLoading={docsLoading}
+            selectedDocs={selectedDocs}
+            userRole={user.role}
+            onVerify={handleVerify}
+          />
+
+          {/* --- EMI Dialog for Users --- */}
+          <EmiDialog
+            open={emiDialogOpen}
+            onClose={() => setEmiDialogOpen(false)}
+            emiLoading={emiLoading}
+            selectedLoanEMIs={selectedLoanEMIs}
+            onPayEmi={handlePayEmi}
+          />
+        </Paper>
       </Container>
     </Box>
   );
